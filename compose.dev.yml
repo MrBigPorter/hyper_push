@@ -1,0 +1,43 @@
+# ==========================================
+# HyperPush — Development Override
+# ==========================================
+# 开发环境专用，覆盖 compose.yml 的配置
+# 支持后端热更新（改代码自动重启）
+#
+# 使用方式:
+#   docker compose -f compose.yml -f compose.dev.yml up -d --build
+#
+# 停止:
+#   docker compose -f compose.yml -f compose.dev.yml down
+# ==========================================
+
+services:
+  # =========================================
+  # 后端 — 开发模式（热更新）
+  # =========================================
+  app:
+    build:
+      target: development
+    volumes:
+      - ./backend/src:/app/src
+      - ./backend/prisma:/app/prisma
+      - ./backend/package.json:/app/package.json
+      - ./backend/bun.lock:/app/bun.lock
+      - ./backend/tsconfig.json:/app/tsconfig.json
+      - ./backend/tsconfig.build.json:/app/tsconfig.build.json
+      - ./backend/nest-cli.json:/app/nest-cli.json
+      - prisma_client:/app/node_modules/.prisma
+    # NestJS 的 nest build --watch 会监听 src/ 文件变化
+    # 修改 .ts 文件后自动重新编译并重启
+
+  # =========================================
+  # 前端 — 保持原样（已经支持 HMR）
+  # =========================================
+  # frontend 已经在用 Vite dev server，无需额外配置
+  # 但确保 hot reload volume 挂载
+  frontend:
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/index.html:/app/index.html
+      - ./frontend/vite.config.ts:/app/vite.config.ts
+      - ./frontend/package.json:/app/package.json

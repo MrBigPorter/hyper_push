@@ -1,0 +1,58 @@
+{
+  "name": "hyperpush-backend",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "nest build",
+    "start": "node dist/main",
+    "start:dev": "nest build --watch",
+    "start:prod": "node dist/main",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write .",
+    "check-types": "tsc --noEmit",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:studio": "prisma studio"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.15",
+    "@nestjs/cli": "^11.0.21",
+    "@swc/cli": "^0.8.1",
+    "@swc/core": "^1.15.40",
+    "@types/bcryptjs": "^3.0.0",
+    "@types/bun": "latest",
+    "@types/multer": "^2.1.0",
+    "@types/nodemailer": "^8.0.0",
+    "@types/passport-jwt": "^4.0.1"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@apollo/server": "^5.5.1",
+    "@as-integrations/express5": "^1.1.2",
+    "@nestjs/apollo": "^13.4.2",
+    "@nestjs/common": "^11.1.23",
+    "@nestjs/config": "^4.0.4",
+    "@nestjs/core": "^11.1.23",
+    "@nestjs/graphql": "^13.4.2",
+    "@nestjs/jwt": "^11.0.2",
+    "@nestjs/passport": "^11.0.5",
+    "@nestjs/platform-express": "^11.1.23",
+    "@prisma/adapter-libsql": "7.8.0",
+    "@prisma/client": "^7.8.0",
+    "bcryptjs": "^3.0.3",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.15.1",
+    "graphql": "^16.14.0",
+    "graphql-type-json": "^0.3.2",
+    "nodemailer": "^8.0.8",
+    "passport": "^0.7.0",
+    "passport-jwt": "^4.0.1",
+    "prisma": "^7.8.0",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2"
+  }
+}

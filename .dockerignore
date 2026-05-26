@@ -1,0 +1,62 @@
+# ==========================================
+# HyperPush — Docker Build Ignore
+# ==========================================
+
+# dependencies
+node_modules
+
+# build output — 由多阶段构建重新生成
+dist
+out
+
+# source maps (生产环境不需要)
+*.tsbuildinfo
+*.map
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# env
+.env
+.env.local
+.env.*.local
+
+# logs
+logs
+*.log
+
+# git
+.git
+.gitignore
+.gitattributes
+
+# CI/CD
+.github
+
+# docs/plans (非运行时必需)
+plans
+docs
+
+# docker (防止循环构建)
+docker-compose*.yml
+compose*.yml
+Dockerfile
+.dockerignore
+
+# test
+test
+__tests__
+coverage
+
+# temp
+.cache
+.tmp
+tmp
