@@ -10,6 +10,7 @@ import { ApiKeysModule } from './api-keys/api-keys.module.js';
 import { AuditLogModule } from './audit-log/audit-log.module.js';
 import { GraphQLJSON } from 'graphql-type-json';
 import { AppResolver } from './app.resolver.js';
+import { GraphiQLModule } from './graphiql/graphiql.module.js';
 
 @Module({
   imports: [
@@ -18,7 +19,7 @@ import { AppResolver } from './app.resolver.js';
       driver: ApolloDriver,
       autoSchemaFile: 'schema.gql',
       sortSchema: true,
-      playground: true,
+      playground: false,
       buildSchemaOptions: {
         scalarsMap: [
           { type: GraphQLJSON as any, scalar: GraphQLJSON as any },
@@ -31,6 +32,7 @@ import { AppResolver } from './app.resolver.js';
     CodepushModule,
     ApiKeysModule,
     AuditLogModule,
+    GraphiQLModule,
   ],
   providers: [AppResolver],
 })

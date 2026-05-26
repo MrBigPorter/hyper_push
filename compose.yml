@@ -1,28 +1,46 @@
 # ==========================================
-# HyperPush — Development Docker Compose
+# HyperPush — Production Docker Compose
 # ==========================================
-# 一键启动 (所有服务):
+# 生产环境使用:
 #   docker compose up -d --build
 #
-# 查看日志:
-#   docker compose logs -f
-#
-# 停止:
-#   docker compose down
+# 开发环境使用:
+#   docker compose -f compose.yml -f compose.dev.yml up -d --build
 # ==========================================
 # 架构说明:
 #   - HyperPush BFF: NestJS + Prisma + GraphQL (port 3000)
 #   - Frontend:      Vite + React (port 5173)
+#   - PostgreSQL 16 (HyperPush 数据库)
 #   - code-push-server (port 3001)
 #   - MySQL 8.0 (CodePush 数据库)
 #   - Redis 7 (CodePush 缓存)
-#   - 本地开发用 SQLite，无需 PostgreSQL
 # ==========================================
 
 include:
   - compose.codepush.yml
 
 services:
+  # =========================================
+  # PostgreSQL 数据库
+  # =========================================
+  db:
+    image: postgres:16-alpine
+    container_name: hyperpush-db
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: hyperpush
+      POSTGRES_PASSWORD: hyperpush123
+      POSTGRES_DB: hyperpush
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hyperpush"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   # =========================================
   # HyperPush 后端 (NestJS + Prisma + GraphQL)
   # =========================================
@@ -39,19 +57,22 @@ services:
     env_file:
       - .env
     environment:
-      DATABASE_URL: ${DATABASE_URL:-file:./dev.db}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://hyperpush:hyperpush123@db:5432/hyperpush}
       NODE_ENV: development
     volumes:
       - ./backend/src:/app/src
       - ./backend/prisma:/app/prisma
       - ./backend/package.json:/app/package.json
       - prisma_client:/app/node_modules/.prisma
+    depends_on:
+      db:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- --post-data='{\"query\":\"{_health}\"}' --header='Content-Type: application/json' http://localhost:3000/graphql >/dev/null 2>&1 || exit 1"]
       interval: 15s
       timeout: 3s
       retries: 5
-      start_period: 20s
+      start_period: 30s
 
   # =========================================
   # HyperPush 前端 (Vite + React + HMR)
@@ -78,3 +99,4 @@ services:
 
 volumes:
   prisma_client:
+  pgdata:

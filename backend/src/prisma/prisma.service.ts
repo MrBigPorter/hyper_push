@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type { OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
-import { PrismaLibSql } from '@prisma/adapter-libsql';
+import { PrismaPg } from '@prisma/adapter-pg';
 
 @Injectable()
 export class PrismaService
@@ -9,10 +9,8 @@ export class PrismaService
   implements OnModuleInit, OnModuleDestroy
 {
   constructor() {
-    const url = process.env.DATABASE_URL ?? 'file:./dev.db';
-
-    const adapter = new PrismaLibSql({ url });
-
+    const connectionString = process.env.DATABASE_URL ?? 'postgresql://hyperpush:hyperpush123@localhost:5432/hyperpush';
+    const adapter = new PrismaPg({ connectionString });
     super({ adapter });
   }
 
