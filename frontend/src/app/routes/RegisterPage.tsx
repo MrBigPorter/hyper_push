@@ -5,7 +5,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
-import { Cloud } from 'lucide-react';
 import { Card } from '@app/components/ui/Card';
 import { Input } from '@app/components/ui/Input';
 import { Button } from '@app/components/ui/Button';
@@ -61,9 +60,11 @@ export function RegisterPage() {
       <Card padding="lg" className="w-full max-w-md">
         {/* Logo */}
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary-600">
-            <Cloud className="h-7 w-7 text-white" aria-hidden="true" />
-          </div>
+          <img
+            src="/logo.png"
+            alt="HyperPush"
+            className="mx-auto mb-4 h-16 w-16"
+          />
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
             Create Account
           </h1>

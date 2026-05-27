@@ -7,11 +7,11 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useNavigate } from '@tanstack/react-router';
+import { useNavigate, Link } from '@tanstack/react-router';
 import { useAppDispatch, useAppSelector } from '@app/hooks';
 import { authStart, authSuccess, authFailure } from '@app/store/slices/authSlice';
 import { Input, Button, Card } from '@app/components/ui';
-import { Server, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 // Zod validation schema
 const loginSchema = z.object({
@@ -99,9 +99,11 @@ export function LoginPage() {
       <Card padding="lg" className="w-full max-w-md">
         {/* Logo / Header */}
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary-600">
-            <Server className="h-6 w-6 text-white" aria-hidden="true" />
-          </div>
+          <img
+            src="/logo.png"
+            alt="HyperPush"
+            className="mx-auto mb-4 h-16 w-16"
+          />
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
             HyperPush
           </h1>
@@ -150,13 +152,15 @@ export function LoginPage() {
           </Button>
         </form>
 
-        {/* TODO: Register link — enable after auth resolver is ready */}
-        {/* <p className="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
+        <p className="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
           Don't have an account?{' '}
-          <a href="/register" className="text-primary-600 hover:text-primary-500">
+          <Link
+            to="/register"
+            className="text-primary-600 hover:text-primary-500 font-medium"
+          >
             Register
-          </a>
-        </p> */}
+          </Link>
+        </p>
       </Card>
     </div>
   );

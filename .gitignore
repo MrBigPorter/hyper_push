@@ -45,3 +45,6 @@ backend/prisma/*.db-journal
 
 # Vite
 *.local
+
+# Plans / internal docs (not for public)
+plans/
