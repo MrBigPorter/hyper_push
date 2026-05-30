@@ -1,6 +1,6 @@
 // ==========================================
 // HyperPush — GraphQL Query/Mutation Types
-// 严格类型，零 any
+// Matches backend resolver field names
 // ==========================================
 
 import type {
@@ -8,227 +8,115 @@ import type {
   Server,
   ApiKey,
   AuditLog,
-  CodePushApp,
-  Deployment,
-  Release,
-  AccessKey,
-  PaginationInput,
-  SortDirection,
+  PaginationInfo,
 } from './models';
 
 // ─── Auth ───────────────────────────────────────
 
-export interface LoginMutationVariables {
-  input: {
-    email: string;
-    password: string;
-  };
-}
-
-export interface LoginMutationResponse {
+export interface AuthResponseData {
   login: {
-    token: string;
+    accessToken: string;
     user: User;
   };
 }
 
-export interface RegisterMutationVariables {
-  input: {
-    email: string;
-    password: string;
-    name?: string | null;
-  };
-}
-
-export interface RegisterMutationResponse {
+export interface RegisterResponseData {
   register: {
-    token: string;
+    accessToken: string;
     user: User;
   };
 }
 
-export interface MeQueryResponse {
+export interface MeResponseData {
   me: User;
 }
 
 // ─── Servers ────────────────────────────────────
 
-export interface ServersQueryVariables {
-  pagination?: PaginationInput;
-  sortDirection?: SortDirection;
+export interface ServersResponseData {
+  getServers: Server[];
 }
 
-export interface ServersQueryResponse {
-  servers: Server[];
+export interface ServerResponseData {
+  getServer: Server;
 }
 
-export interface ServerQueryVariables {
-  id: string;
+export interface CreateServerInput {
+  name: string;
+  baseUrl: string;
+  username: string;
+  password: string;
 }
 
-export interface ServerQueryResponse {
-  server: Server;
-}
-
-export interface CreateServerMutationVariables {
-  input: {
-    name: string;
-    baseUrl: string;
-    username: string;
-    password: string;
-  };
-}
-
-export interface CreateServerMutationResponse {
+export interface CreateServerResponseData {
   createServer: Server;
 }
 
-export interface UpdateServerMutationVariables {
-  input: {
-    id: string;
-    name?: string;
-    baseUrl?: string;
-    username?: string;
-    password?: string;
-    apiKey?: string;
-  };
+export interface UpdateServerInput {
+  id: string;
+  name?: string;
+  baseUrl?: string;
+  username?: string;
+  password?: string;
+  apiKey?: string;
 }
 
-export interface UpdateServerMutationResponse {
+export interface UpdateServerResponseData {
   updateServer: Server;
 }
 
-export interface DeleteServerMutationVariables {
-  id: string;
-}
-
-export interface DeleteServerMutationResponse {
+export interface DeleteServerResponseData {
   deleteServer: Server;
 }
 
 // ─── API Keys ───────────────────────────────────
 
-export interface ApiKeysQueryVariables {
-  pagination?: PaginationInput;
+export interface ApiKeysResponseData {
+  getApiKeys: ApiKey[];
 }
 
-export interface ApiKeysQueryResponse {
-  apiKeys: ApiKey[];
+export interface CreateApiKeyInput {
+  name: string;
 }
 
-export interface CreateApiKeyMutationVariables {
-  input: {
-    name: string;
-    expiresAt?: string | null;
-  };
-}
-
-export interface CreateApiKeyMutationResponse {
+export interface CreateApiKeyResponseData {
   createApiKey: ApiKey;
 }
 
-export interface DeleteApiKeyMutationVariables {
-  id: string;
-}
-
-export interface DeleteApiKeyMutationResponse {
+export interface DeleteApiKeyResponseData {
   deleteApiKey: ApiKey;
 }
 
 // ─── Audit Logs ─────────────────────────────────
 
-export interface AuditLogsQueryVariables {
-  pagination?: PaginationInput;
+export interface AuditLogsFilterInput {
   entity?: string;
   action?: string;
+  page?: number;
+  pageSize?: number;
 }
 
-export interface AuditLogsQueryResponse {
-  auditLogs: AuditLog[];
-}
-
-// ─── CodePush Apps ────────────────────────────
-
-export interface AppsQueryVariables {
-  serverId: string;
-}
-
-export interface AppsQueryResponse {
-  apps: CodePushApp[];
-}
-
-export interface CreateAppMutationVariables {
-  input: {
-    name: string;
-    platform: string;
-    serverId: string;
+export interface AuditLogsResponseData {
+  getAuditLogs: {
+    items: AuditLog[];
+    pagination: PaginationInfo;
   };
 }
 
-export interface CreateAppMutationResponse {
-  createApp: CodePushApp;
+// ─── CodePush ───────────────────────────────────
+
+export interface CodepushAppsResponseData {
+  codepushApps: Record<string, unknown>[];
 }
 
-export interface DeleteAppMutationVariables {
-  id: string;
+export interface CodepushDeploymentsResponseData {
+  codepushDeployments: Record<string, unknown>[];
 }
 
-export interface DeleteAppMutationResponse {
-  deleteApp: CodePushApp;
+export interface CodepushReleaseHistoryResponseData {
+  codepushReleaseHistory: Record<string, unknown>[];
 }
 
-// ─── Deployments ──────────────────────────────
-
-export interface DeploymentsQueryVariables {
-  appId: string;
-}
-
-export interface DeploymentsQueryResponse {
-  deployments: Deployment[];
-}
-
-// ─── Releases ─────────────────────────────────
-
-export interface ReleasesQueryVariables {
-  deploymentId: string;
-}
-
-export interface ReleasesQueryResponse {
-  releases: Release[];
-}
-
-// ─── Access Keys ──────────────────────────────
-
-export interface AccessKeysQueryVariables {
-  appId: string;
-}
-
-export interface AccessKeysQueryResponse {
-  accessKeys: AccessKey[];
-}
-
-export interface CreateAccessKeyMutationVariables {
-  input: {
-    name: string;
-    keyType: string;
-    appId: string;
-  };
-}
-
-export interface CreateAccessKeyMutationResponse {
-  createAccessKey: AccessKey;
-}
-
-export interface RevokeAccessKeyMutationVariables {
-  id: string;
-}
-
-export interface RevokeAccessKeyMutationResponse {
-  revokeAccessKey: AccessKey;
-}
-
-// ─── Health ─────────────────────────────────────
-
-export interface HealthQueryResponse {
-  _health: string;
+export interface CodepushAccessKeysResponseData {
+  codepushAccessKeys: Record<string, unknown>[];
 }

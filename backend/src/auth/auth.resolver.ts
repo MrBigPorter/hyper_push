@@ -1,10 +1,11 @@
 import { Resolver, Query, Mutation, Args, Context } from '@nestjs/graphql';
+import { UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service.js';
 import { LoginInput } from '@/auth/dto';
 import { RegisterInput } from '@/auth/dto';
 import { AuthModel } from './models/auth.model.js';
 import { UserModel } from './models/user.model.js';
-import { UnauthorizedException } from '@nestjs/common';
+import { GqlAuthGuard } from '@/auth/guards/gql-auth.guard.js';
 
 @Resolver()
 export class AuthResolver {
@@ -25,12 +26,10 @@ export class AuthResolver {
   }
 
   @Query(() => UserModel)
+  @UseGuards(GqlAuthGuard)
   async me(
-    @Context() ctx: { req: { user?: { sub: string } } },
+    @Context() ctx: { req: { user: { sub: string } } },
   ) {
-    if (!ctx.req.user) {
-      throw new UnauthorizedException('Not authenticated');
-    }
     return this.authService.getMe(ctx.req.user.sub);
   }
 }

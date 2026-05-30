@@ -1,10 +1,13 @@
 import { Resolver, Query, Mutation, Args, Context } from '@nestjs/graphql';
+import { UseGuards } from '@nestjs/common';
 import { ServersService } from './servers.service.js';
 import { CreateServerInput } from './dto/create-server.input.js';
 import { UpdateServerInput } from './dto/update-server.input.js';
 import { ServerModel } from './models/server.model.js';
+import { GqlAuthGuard } from '@/auth/guards/gql-auth.guard.js';
 
 @Resolver(() => ServerModel)
+@UseGuards(GqlAuthGuard)
 export class ServersResolver {
   constructor(private readonly serversService: ServersService) {}
 

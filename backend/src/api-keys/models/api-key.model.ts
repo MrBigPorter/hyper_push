@@ -15,7 +15,16 @@ export class ApiKeyModel {
   key: string;
 
   @Field()
+  active: boolean;
+
+  @Field()
   userId: string;
+
+  @Field({ nullable: true })
+  expiresAt?: Date;
+
+  @Field({ nullable: true })
+  lastUsed?: Date;
 
   @Field()
   createdAt: Date;

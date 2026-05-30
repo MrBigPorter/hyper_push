@@ -1,6 +1,5 @@
 // ==========================================
 // HyperPush — Login Page
-// GraphQL mutation — write your own (TODO location marked)
 // ==========================================
 
 import { useState } from 'react';
@@ -10,8 +9,10 @@ import { z } from 'zod';
 import { useNavigate, Link } from '@tanstack/react-router';
 import { useAppDispatch, useAppSelector } from '@app/hooks';
 import { authStart, authSuccess, authFailure } from '@app/store/slices/authSlice';
+import { useMutation } from '@apollo/client/react';
+import { LOGIN_MUTATION } from '@app/lib/graphql';
 import { Input, Button, Card } from '@app/components/ui';
-import { Loader2 } from 'lucide-react';
+import type { AuthResponseData } from '@app/types/graphql';
 
 // Zod validation schema
 const loginSchema = z.object({
@@ -30,17 +31,15 @@ export function LoginPage() {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { isLoading, error } = useAppSelector((state) => state.auth);
-  const [showRegister, setShowRegister] = useState(false);
+
+  const [loginMutation] = useMutation(LOGIN_MUTATION);
 
   const {
     register,
     handleSubmit,
     formState: { errors },
   } = useForm<LoginFormData>({
-    resolver: zodResolver(showRegister
-      ? loginSchema.extend({ name: z.string().optional() })
-      : loginSchema,
-    ),
+    resolver: zodResolver(loginSchema),
     defaultValues: {
       email: '',
       password: '',
@@ -51,41 +50,22 @@ export function LoginPage() {
     dispatch(authStart());
 
     try {
-      // ==============================================================
-      // 🚧 DEV MOCK LOGIN — replace with real GraphQL mutation
-      //
-      // When you write the backend GraphQL resolver, replace this
-      // entire block with:
-      //
-      //   const { data: result } = await useMutation(LOGIN_MUTATION, {
-      //     variables: { input: { email: data.email, password: data.password } },
-      //   });
-      //
-      //   dispatch(authSuccess({
-      //     token: result.login.token,
-      //     user: result.login.user,
-      //   }));
-      //
-      //   navigate({ to: '/dashboard' });
-      // ==============================================================
-
-      // Simulate network delay
-      await new Promise((resolve) => setTimeout(resolve, 800));
-
-      dispatch(
-        authSuccess({
-          token: 'mock-jwt-token',
-          user: {
-            id: 'mock-user-id',
+      const result = await loginMutation({
+        variables: {
+          input: {
             email: data.email,
-            name: data.email.split('@')[0] ?? 'Demo User',
-            role: 'admin',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
+            password: data.password,
           },
-        }),
-      );
+        },
+      }) as { data?: AuthResponseData };
 
+      const { accessToken, user } = result.data?.login ?? {};
+
+      if (!accessToken || !user) {
+        throw new Error('Invalid response from server');
+      }
+
+      dispatch(authSuccess({ token: accessToken, user }));
       navigate({ to: '/dashboard' });
     } catch (err) {
       const message =

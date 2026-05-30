@@ -4,6 +4,8 @@
 // ==========================================
 
 import { useState } from 'react';
+import { useNavigate } from '@tanstack/react-router';
+import { useQuery, useMutation } from '@apollo/client/react';
 import { Card, CardHeader, Button } from '@app/components/ui';
 import { Plus, Server, Globe, User, KeyRound } from 'lucide-react';
 import {
@@ -15,6 +17,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { GET_SERVERS, CREATE_SERVER, DELETE_SERVER } from '@app/lib/graphql';
+import { Badge } from '@/components/ui/badge';
+import type { Server as ServerModel } from '@app/types/models';
+import type { ServersResponseData } from '@app/types/graphql';
 
 interface CreateServerForm {
   name: string;
@@ -24,6 +30,7 @@ interface CreateServerForm {
 }
 
 export function ServersPage() {
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<CreateServerForm>({
     name: '',
@@ -32,11 +39,41 @@ export function ServersPage() {
     password: '',
   });
 
-  const handleSubmit = () => {
-    // TODO: Replace with actual createServer mutation
-    console.log('Create server:', form);
-    setOpen(false);
-    setForm({ name: '', baseUrl: '', username: '', password: '' });
+  const { data, loading, error } = useQuery(GET_SERVERS);
+  const [createServer, { loading: creating }] = useMutation(CREATE_SERVER, {
+    refetchQueries: [{ query: GET_SERVERS }],
+  });
+  const [deleteServer] = useMutation(DELETE_SERVER, {
+    refetchQueries: [{ query: GET_SERVERS }],
+  });
+
+  const servers: ServerModel[] = (data as ServersResponseData | undefined)?.getServers ?? [];
+
+  const handleSubmit = async () => {
+    try {
+      await createServer({
+        variables: {
+          input: {
+            name: form.name,
+            baseUrl: form.baseUrl,
+            username: form.username,
+            password: form.password,
+          },
+        },
+      });
+      setOpen(false);
+      setForm({ name: '', baseUrl: '', username: '', password: '' });
+    } catch (err) {
+      console.error('Failed to create server:', err);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteServer({ variables: { id } });
+    } catch (err) {
+      console.error('Failed to delete server:', err);
+    }
   };
 
   const updateField = (field: keyof CreateServerForm, value: string) => {
@@ -56,12 +93,10 @@ export function ServersPage() {
         description="Manage CodePush backend server connections"
         action={
           <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger>
-              <Button variant="primary" size="sm">
-                <Plus className="mr-1 h-4 w-4" />
-                Add Server
-              </Button>
-            </DialogTrigger>
+            <Button variant="primary" size="sm" onClick={() => setOpen(true)}>
+              <Plus className="mr-1 h-4 w-4" />
+              Add Server
+            </Button>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Add CodePush Server</DialogTitle>
@@ -155,19 +190,15 @@ export function ServersPage() {
                   variant="ghost"
                   onClick={() => {
                     setOpen(false);
-                    setForm({
-                      name: '',
-                      baseUrl: '',
-                      username: '',
-                      password: '',
-                    });
+                    setForm({ name: '', baseUrl: '', username: '', password: '' });
                   }}
                 >
                   Cancel
                 </Button>
                 <Button
                   variant="primary"
-                  disabled={!isFormValid}
+                  disabled={!isFormValid || creating}
+                  loading={creating}
                   onClick={handleSubmit}
                 >
                   Add Server
@@ -179,23 +210,63 @@ export function ServersPage() {
       />
 
       <Card padding="none">
-        {/*
-          TODO: Write your GraphQL servers query here
-          Example:
-            const { data, loading } = useQuery(GET_SERVERS);
-            if (loading) return <LoadingSkeleton />;
-            return <ServerTable servers={data.servers} />;
-
-          Server type: import { Server } from '@app/types'
-        */}
-        <div className="py-16 text-center">
-          <p className="text-gray-400 dark:text-gray-500">
-            No servers yet
-          </p>
-          <p className="mt-1 text-sm text-gray-400 dark:text-gray-500">
-            Click "Add Server" to connect your first CodePush server.
-          </p>
-        </div>
+        {loading ? (
+          <div className="flex items-center justify-center py-16">
+            <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-primary-600 border-t-transparent" />
+          </div>
+        ) : error ? (
+          <div className="py-16 text-center">
+            <p className="text-red-500">Failed to load servers: {error.message}</p>
+          </div>
+        ) : servers.length === 0 ? (
+          <div className="py-16 text-center">
+            <p className="text-gray-400 dark:text-gray-500">No servers yet</p>
+            <p className="mt-1 text-sm text-gray-400 dark:text-gray-500">
+              Click "Add Server" to connect your first CodePush server.
+            </p>
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-200 dark:divide-dark-700">
+            {servers.map((server) => (
+              <div
+                key={server.id}
+                className="flex items-center justify-between px-6 py-4 hover:bg-gray-50 dark:hover:bg-dark-800/50 cursor-pointer transition-colors"
+                onClick={() => navigate({ to: '/dashboard/servers/$id', params: { id: server.id } })}
+              >
+                <div className="flex items-center gap-4">
+                  <div
+                    className={`h-2.5 w-2.5 rounded-full ${
+                      server.isOnline ? 'bg-green-500' : 'bg-gray-400'
+                    }`}
+                  />
+                  <div>
+                    <p className="font-medium text-gray-900 dark:text-gray-100">
+                      {server.name}
+                    </p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      {server.baseUrl}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Badge variant={server.isOnline ? 'default' : 'secondary'}>
+                    {server.isOnline ? 'Online' : 'Offline'}
+                  </Badge>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(server.id);
+                    }}
+                    className="text-sm text-red-500 hover:text-red-700"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </Card>
     </div>
   );

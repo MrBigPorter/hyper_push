@@ -6,9 +6,12 @@ import { useState } from 'react';
 import { useNavigate, Link } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 import { Card } from '@app/components/ui/Card';
-import { Input } from '@app/components/ui/Input';
 import { Button } from '@app/components/ui/Button';
-import type { RegisterInput } from '@app/types/auth';
+import { useMutation } from '@apollo/client/react';
+import { REGISTER_MUTATION } from '@app/lib/graphql';
+import { useAppDispatch } from '@app/hooks';
+import { authSuccess } from '@app/store/slices/authSlice';
+import type { RegisterResponseData } from '@app/types/graphql';
 
 interface RegisterFormData {
   name: string;
@@ -19,8 +22,10 @@ interface RegisterFormData {
 
 export function RegisterPage() {
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
   const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+
+  const [registerMutation, { loading }] = useMutation(REGISTER_MUTATION);
 
   const {
     register,
@@ -33,25 +38,30 @@ export function RegisterPage() {
 
   const onSubmit = async (data: RegisterFormData) => {
     setError(null);
-    setIsLoading(true);
 
     try {
-      const input: RegisterInput = {
-        email: data.email,
-        password: data.password,
-        name: data.name || undefined,
-      };
+      const result = await registerMutation({
+        variables: {
+          input: {
+            email: data.email,
+            password: data.password,
+            name: data.name || undefined,
+          },
+        },
+      }) as { data?: RegisterResponseData };
 
-      // TODO: Replace with actual register mutation
-      console.log('Register input:', input);
+      const { accessToken, user } = result.data?.register ?? {};
 
-      // Mock register — simply redirect to login for now
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      navigate({ to: '/' });
+      if (!accessToken || !user) {
+        throw new Error('Registration failed: no token received');
+      }
+
+      dispatch(authSuccess({ token: accessToken, user }));
+      navigate({ to: '/dashboard' });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Registration failed');
-    } finally {
-      setIsLoading(false);
+      setError(
+        err instanceof Error ? err.message : 'Registration failed',
+      );
     }
   };
 
@@ -181,9 +191,9 @@ export function RegisterPage() {
             variant="primary"
             size="lg"
             className="w-full"
-            disabled={isLoading}
+            disabled={loading}
           >
-            {isLoading ? 'Creating account...' : 'Create Account'}
+            {loading ? 'Creating account...' : 'Create Account'}
           </Button>
         </form>
 

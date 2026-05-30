@@ -5,119 +5,26 @@
 
 import { useState } from 'react';
 import { useNavigate, useParams } from '@tanstack/react-router';
+import { useQuery } from '@apollo/client/react';
 import {
   ArrowLeft,
   Smartphone,
   Layers,
   Package,
   KeyRound,
-  ExternalLink,
   RotateCcw,
-  ToggleLeft,
-  ToggleRight,
 } from 'lucide-react';
 import { Card } from '@app/components/ui/Card';
 import { Button } from '@app/components/ui/Button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
-import type {
-  Deployment,
-  Release,
-  AccessKey,
-} from '@app/types/models';
-
-// ─── Mock Data ───────────────────────────────
-
-const mockDeployments: Deployment[] = [
-  {
-    id: 'd1',
-    name: 'Staging',
-    appId: 'app-1',
-    createdAt: '2025-01-15T00:00:00Z',
-    updatedAt: '2025-05-25T00:00:00Z',
-  },
-  {
-    id: 'd2',
-    name: 'Production',
-    appId: 'app-1',
-    createdAt: '2025-01-15T00:00:00Z',
-    updatedAt: '2025-05-26T00:00:00Z',
-  },
-];
-
-const mockReleases: Release[] = [
-  {
-    id: 'r1',
-    appVersion: '1.2.0',
-    deploymentId: 'd2',
-    label: 'v5',
-    hash: 'a1b2c3d4e5f6...',
-    status: 'active',
-    size: 245000,
-    isMandatory: false,
-    isDisabled: false,
-    rollout: 100,
-    description: 'Bug fixes and performance improvements',
-    releasedBy: 'john@example.com',
-    createdAt: '2025-05-26T08:00:00Z',
-  },
-  {
-    id: 'r2',
-    appVersion: '1.1.0',
-    deploymentId: 'd2',
-    label: 'v4',
-    hash: 'f6e5d4c3b2a1...',
-    status: 'active',
-    size: 210000,
-    isMandatory: true,
-    isDisabled: false,
-    rollout: 100,
-    description: 'New onboarding flow',
-    releasedBy: 'john@example.com',
-    createdAt: '2025-05-20T00:00:00Z',
-  },
-  {
-    id: 'r3',
-    appVersion: '1.0.0',
-    deploymentId: 'd1',
-    label: 'v3',
-    hash: 'xyz789...',
-    status: 'rolled_back',
-    size: 180000,
-    isMandatory: false,
-    isDisabled: true,
-    rollout: 50,
-    description: 'Initial release',
-    releasedBy: 'jane@example.com',
-    createdAt: '2025-05-10T00:00:00Z',
-  },
-];
-
-const mockAccessKeys: AccessKey[] = [
-  {
-    id: 'ak1',
-    name: 'CI Deploy Key',
-    key: 'hp_dep_abc123...',
-    keyType: 'deployment',
-    deploymentId: 'd2',
-    active: true,
-    createdAt: '2025-03-01T00:00:00Z',
-    expiresAt: '2026-03-01T00:00:00Z',
-    lastUsed: '2025-05-26T06:00:00Z',
-  },
-  {
-    id: 'ak2',
-    name: 'Dev View Key',
-    key: 'hp_view_xyz789...',
-    keyType: 'viewer',
-    deploymentId: null,
-    active: true,
-    createdAt: '2025-04-15T00:00:00Z',
-    expiresAt: null,
-    lastUsed: '2025-05-25T12:00:00Z',
-  },
-];
+import {
+  CODEPUSH_APPS,
+  CODEPUSH_DEPLOYMENTS,
+  CODEPUSH_RELEASE_HISTORY,
+  CODEPUSH_ACCESS_KEYS,
+} from '@app/lib/graphql';
 
 // ─── Helpers ─────────────────────────────────
 
@@ -127,18 +34,24 @@ function formatBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
 }
 
+function isObject(val: unknown): val is Record<string, unknown> {
+  return typeof val === 'object' && val !== null;
+}
+
 // ─── Component ───────────────────────────────
 
 export function AppDetailPage() {
   const navigate = useNavigate();
   const params = useParams({ from: '/dashboard/codepush/$appId' });
-  const [isLoading] = useState(false);
+  const serverId = params.appId;
+
+  const { data: appsData, loading: appsLoading } = useQuery(CODEPUSH_APPS, {
+    variables: { serverId },
+  });
+
   const [activeDeployment, setActiveDeployment] = useState<string | null>(null);
 
-  // Filter releases by selected deployment
-  const filteredReleases = activeDeployment
-    ? mockReleases.filter((r) => r.deploymentId === activeDeployment)
-    : mockReleases;
+  const apps = (Array.isArray((appsData as Record<string, unknown>)?.codepushApps) ? (appsData as Record<string, unknown>).codepushApps : []) as Record<string, unknown>[];
 
   return (
     <div className="space-y-6">
@@ -152,6 +65,84 @@ export function AppDetailPage() {
         Back to Apps
       </button>
 
+      {appsLoading ? (
+        <Card padding="lg">
+          <div className="flex items-center justify-center py-8">
+            <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-primary-600 border-t-transparent" />
+          </div>
+        </Card>
+      ) : apps.length === 0 ? (
+        <Card padding="lg">
+          <div className="py-12 text-center">
+            <Smartphone className="mx-auto h-12 w-12 text-gray-300 dark:text-gray-600" />
+            <p className="mt-4 text-gray-400 dark:text-gray-500">
+              No apps found on this server
+            </p>
+          </div>
+        </Card>
+      ) : (
+        apps.map((app) => (
+          <AppDetailCard
+            key={String(app.name ?? app.id ?? '')}
+            app={app}
+            serverId={serverId}
+            activeDeployment={activeDeployment}
+            onSetActiveDeployment={setActiveDeployment}
+          />
+        ))
+      )}
+    </div>
+  );
+}
+
+function AppDetailCard({
+  app,
+  serverId,
+  activeDeployment,
+  onSetActiveDeployment,
+}: {
+  app: Record<string, unknown>;
+  serverId: string;
+  activeDeployment: string | null;
+  onSetActiveDeployment: (id: string | null) => void;
+}) {
+  const appName = String(app.name ?? '');
+  const appPlatform = String(app.os ?? app.platform ?? 'N/A');
+
+  const { data: deploymentsData, loading: deploysLoading } = useQuery(CODEPUSH_DEPLOYMENTS, {
+    variables: { serverId, appName },
+  });
+
+  const { data: releasesData, loading: releasesLoading } = useQuery(
+    CODEPUSH_RELEASE_HISTORY,
+    {
+      variables: {
+        serverId,
+        appName,
+        deploymentName: activeDeployment ?? '',
+      },
+      skip: !activeDeployment,
+    },
+  );
+
+  const { data: accessKeysData, loading: keysLoading } = useQuery(CODEPUSH_ACCESS_KEYS, {
+    variables: { serverId },
+  });
+
+  const deployments = (Array.isArray((deploymentsData as Record<string, unknown>)?.codepushDeployments)
+    ? (deploymentsData as Record<string, unknown>).codepushDeployments
+    : []) as Record<string, unknown>[];
+
+  const releases = (Array.isArray((releasesData as Record<string, unknown>)?.codepushReleaseHistory)
+    ? (releasesData as Record<string, unknown>).codepushReleaseHistory
+    : []) as Record<string, unknown>[];
+
+  const accessKeys = (Array.isArray((accessKeysData as Record<string, unknown>)?.codepushAccessKeys)
+    ? (accessKeysData as Record<string, unknown>).codepushAccessKeys
+    : []) as Record<string, unknown>[];
+
+  return (
+    <div className="space-y-6">
       {/* App Header */}
       <div className="flex items-center gap-3">
         <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-primary-700">
@@ -159,15 +150,15 @@ export function AppDetailPage() {
         </div>
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            My App
+            {appName}
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            App ID: {params.appId} · Platform: iOS
+            Platform: {appPlatform}
           </p>
         </div>
       </div>
 
-      {/* ─── Tabs ─────────────────────────── */}
+      {/* Tabs */}
       <Tabs defaultValue="deployments" className="w-full">
         <TabsList>
           <TabsTrigger value="deployments">
@@ -184,43 +175,43 @@ export function AppDetailPage() {
           </TabsTrigger>
         </TabsList>
 
-        {/* ── Deployments Tab ───────────── */}
+        {/* Deployments Tab */}
         <TabsContent value="deployments" className="mt-4">
           <Card padding="lg">
-            {isLoading ? (
+            {deploysLoading ? (
               <div className="space-y-4">
                 <Skeleton className="h-12 w-full" />
                 <Skeleton className="h-12 w-full" />
               </div>
+            ) : deployments.length === 0 ? (
+              <p className="py-8 text-center text-sm text-gray-400">
+                No deployments yet.
+              </p>
             ) : (
               <div className="space-y-4">
-                {mockDeployments.map((dep) => (
+                {deployments.map((dep: Record<string, unknown>, idx: number) => (
                   <div
-                    key={dep.id}
+                    key={String(dep.name ?? idx)}
                     className="flex items-center justify-between rounded-lg border border-gray-200 p-4 dark:border-dark-700"
                   >
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="font-semibold text-gray-900 dark:text-gray-100">
-                          {dep.name}
+                          {String(dep.name ?? '')}
                         </span>
                         <Badge variant="secondary" className="text-xs">
-                          {dep.name === 'Production'
+                          {String(dep.name ?? '') === 'Production'
                             ? 'Live'
                             : 'Testing'}
                         </Badge>
                       </div>
-                      <p className="mt-1 text-xs text-gray-500">
-                        Created{' '}
-                        {new Date(dep.createdAt).toLocaleDateString()}
-                      </p>
                     </div>
                     <Button
                       variant="secondary"
                       size="sm"
-                      onClick={() => setActiveDeployment(dep.id)}
+                      onClick={() => onSetActiveDeployment(String(dep.name ?? ''))}
                     >
-                      <ExternalLink className="mr-1 h-4 w-4" />
+                      <Package className="mr-1 h-4 w-4" />
                       View Releases
                     </Button>
                   </div>
@@ -230,35 +221,27 @@ export function AppDetailPage() {
           </Card>
         </TabsContent>
 
-        {/* ── Releases Tab ──────────────── */}
+        {/* Releases Tab */}
         <TabsContent value="releases" className="mt-4">
           <Card padding="lg">
             {/* Deployment Filter */}
-            <div className="mb-4 flex items-center gap-2">
+            <div className="mb-4 flex items-center gap-2 flex-wrap">
               <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
                 Filter:
               </span>
-              {['All', ...mockDeployments.map((d) => d.name)].map(
+              {['All', ...deployments.map((d) => String(d.name ?? ''))].map(
                 (name) => (
                   <button
                     key={name}
                     type="button"
                     onClick={() =>
-                      setActiveDeployment(
-                        name === 'All'
-                          ? null
-                          : mockDeployments.find(
-                                (d) => d.name === name,
-                              )?.id ?? null,
+                      onSetActiveDeployment(
+                        name === 'All' ? null : name,
                       )
                     }
                     className={`rounded-lg px-3 py-1 text-xs font-medium transition-colors ${
                       (name === 'All' && !activeDeployment) ||
-                      (name !== 'All' &&
-                        activeDeployment ===
-                          mockDeployments.find(
-                            (d) => d.name === name,
-                          )?.id)
+                      activeDeployment === name
                         ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/20 dark:text-primary-400'
                         : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-dark-800 dark:text-gray-400 dark:hover:bg-dark-700'
                     }`}
@@ -269,146 +252,141 @@ export function AppDetailPage() {
               )}
             </div>
 
-            {isLoading ? (
+            {releasesLoading ? (
               <div className="space-y-4">
                 <Skeleton className="h-16 w-full" />
                 <Skeleton className="h-16 w-full" />
-                <Skeleton className="h-16 w-full" />
               </div>
-            ) : filteredReleases.length === 0 ? (
+            ) : !activeDeployment ? (
+              <p className="py-8 text-center text-sm text-gray-400">
+                Select a deployment to view releases.
+              </p>
+            ) : releases.length === 0 ? (
               <p className="py-8 text-center text-sm text-gray-400">
                 No releases yet for this deployment.
               </p>
             ) : (
               <div className="space-y-3">
-                {filteredReleases.map((release) => (
-                  <div
-                    key={release.id}
-                    className="rounded-lg border border-gray-200 p-4 dark:border-dark-700"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-sm font-bold text-gray-900 dark:text-gray-100">
-                          {release.label}
-                        </span>
-                        <Badge
-                          variant={
-                            release.status === 'active'
-                              ? 'default'
-                              : 'secondary'
-                          }
-                          className="text-xs"
-                        >
-                          {release.status === 'active'
-                            ? 'Active'
-                            : 'Rolled Back'}
-                        </Badge>
-                        {release.isMandatory && (
+                {releases.map((release: Record<string, unknown>, idx: number) => {
+                  const label = String(release.label ?? '');
+                  const appVersion = String(release.appVersion ?? '');
+                  const rollout = Number(release.rollout ?? 100);
+                  const size = Number(release.size ?? release.packageSize ?? 0);
+                  const isMandatory = Boolean(release.isMandatory);
+                  const isDisabled = Boolean(release.isDisabled);
+                  const description = release.description
+                    ? String(release.description)
+                    : null;
+                  const releasedBy = String(release.releasedBy ?? '');
+                  const createdAt = String(release.createdAt ?? '');
+
+                  return (
+                    <div
+                      key={label || idx}
+                      className="rounded-lg border border-gray-200 p-4 dark:border-dark-700"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-sm font-bold text-gray-900 dark:text-gray-100">
+                            {label}
+                          </span>
                           <Badge
-                            variant="destructive"
+                            variant={
+                              (release.status as string) === 'active' ||
+                              release.active === true
+                                ? 'default'
+                                : 'secondary'
+                            }
                             className="text-xs"
                           >
-                            Mandatory
+                            {release.active === true || release.status === 'active'
+                              ? 'Active'
+                              : 'Inactive'}
                           </Badge>
-                        )}
-                        {release.isDisabled && (
-                          <Badge
-                            variant="outline"
-                            className="text-xs"
-                          >
-                            Disabled
-                          </Badge>
-                        )}
+                          {isMandatory && (
+                            <Badge variant="destructive" className="text-xs">
+                              Mandatory
+                            </Badge>
+                          )}
+                          {isDisabled && (
+                            <Badge variant="outline" className="text-xs">
+                              Disabled
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1 text-xs text-gray-400">
+                          <Package className="h-3 w-3" />
+                          {formatBytes(size)}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1 text-xs text-gray-400">
-                        <Package className="h-3 w-3" />
-                        {formatBytes(release.size)}
-                      </div>
-                    </div>
 
-                    <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                      App v{release.appVersion} · Rollout:{' '}
-                      {release.rollout}%
-                    </p>
-
-                    {release.description && (
-                      <p className="mt-1 text-sm text-gray-500 italic dark:text-gray-400">
-                        "{release.description}"
+                      <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                        App v{appVersion} · Rollout: {rollout}%
                       </p>
-                    )}
 
-                    <div className="mt-2 flex items-center gap-4 text-xs text-gray-400">
-                      <span>
-                        <RotateCcw className="mr-1 inline-block h-3 w-3" />
-                        {release.releasedBy}
-                      </span>
-                      <span>
-                        {new Date(release.createdAt).toLocaleString()}
-                      </span>
+                      {description && (
+                        <p className="mt-1 text-sm text-gray-500 italic dark:text-gray-400">
+                          "{description}"
+                        </p>
+                      )}
+
+                      <div className="mt-2 flex items-center gap-4 text-xs text-gray-400">
+                        <span>
+                          <RotateCcw className="mr-1 inline-block h-3 w-3" />
+                          {releasedBy}
+                        </span>
+                        {createdAt && (
+                          <span>{new Date(createdAt).toLocaleString()}</span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </Card>
         </TabsContent>
 
-        {/* ── Access Keys Tab ───────────── */}
+        {/* Access Keys Tab */}
         <TabsContent value="access-keys" className="mt-4">
           <Card padding="lg">
-            {isLoading ? (
+            {keysLoading ? (
               <div className="space-y-4">
                 <Skeleton className="h-12 w-full" />
                 <Skeleton className="h-12 w-full" />
               </div>
+            ) : accessKeys.length === 0 ? (
+              <p className="py-8 text-center text-sm text-gray-400">
+                No access keys yet.
+              </p>
             ) : (
               <div className="space-y-4">
-                {mockAccessKeys.map((key) => (
+                {accessKeys.map((key: Record<string, unknown>, idx: number) => (
                   <div
-                    key={key.id}
+                    key={String(key.name ?? idx)}
                     className="flex items-center justify-between rounded-lg border border-gray-200 p-4 dark:border-dark-700"
                   >
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <span className="font-medium text-gray-900 dark:text-gray-100">
-                          {key.name}
+                          {String(key.friendlyName ?? key.name ?? '')}
                         </span>
-                        <Badge
-                          variant={
-                            key.keyType === 'deployment'
-                              ? 'default'
-                              : 'secondary'
-                          }
-                          className="text-xs"
-                        >
-                          {key.keyType}
+                        <Badge variant="default" className="text-xs">
+                          {String(key.keyType ?? 'deployment')}
                         </Badge>
-                        {key.active ? (
-                          <ToggleRight className="h-4 w-4 text-green-500" />
-                        ) : (
-                          <ToggleLeft className="h-4 w-4 text-gray-400" />
-                        )}
                       </div>
                       <code className="mt-1 block text-xs text-gray-500 dark:text-gray-400">
-                        {key.key}
+                        {String(key.key ?? '')}
                       </code>
-                      <p className="mt-1 text-xs text-gray-400">
-                        Created{' '}
-                        {new Date(key.createdAt).toLocaleDateString()}
-                        {key.lastUsed &&
-                          ` · Last used ${new Date(key.lastUsed).toLocaleDateString()}`}
-                        {key.expiresAt &&
-                          ` · Expires ${new Date(key.expiresAt).toLocaleDateString()}`}
-                      </p>
+                      {!!key.createdAt && (
+                        <p className="mt-1 text-xs text-gray-400">
+                          Created{' '}
+                          {new Date(String(key.createdAt)).toLocaleDateString()}
+                          {!!key.expiresAt &&
+                            ` · Expires ${new Date(String(key.expiresAt)).toLocaleDateString()}`}
+                        </p>
+                      )}
                     </div>
-
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-red-500 hover:text-red-700"
-                    >
-                      Revoke
-                    </Button>
                   </div>
                 ))}
               </div>

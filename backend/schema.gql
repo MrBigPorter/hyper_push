@@ -1,0 +1,216 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+type ApiKey {
+  active: Boolean!
+  createdAt: DateTime!
+  description: String
+  expiresAt: DateTime
+  id: ID!
+  key: String!
+  lastUsed: DateTime
+  name: String!
+  updatedAt: DateTime!
+  userId: String!
+}
+
+type AuditLog {
+  action: String!
+  createdAt: DateTime!
+  detail: String
+  entity: String!
+  entityId: String
+  id: ID!
+  ip: String
+  userId: String!
+}
+
+input AuditLogFilterInput {
+  action: String
+  entity: String
+  page: Int
+  pageSize: Int
+}
+
+type AuditLogListResponse {
+  items: [AuditLog!]!
+  pagination: PaginationInfo!
+}
+
+type Auth {
+  accessToken: String!
+  user: User!
+}
+
+input CreateAccessKeyInput {
+  createdBy: String
+  description: String
+  friendlyName: String!
+  serverId: String!
+  ttl: Int
+}
+
+input CreateApiKeyInput {
+  expiresAt: String
+  name: String!
+}
+
+input CreateAppInput {
+  name: String!
+  os: String!
+  platform: String!
+  serverId: String!
+}
+
+input CreateDeploymentInput {
+  appName: String!
+  name: String!
+  serverId: String!
+}
+
+input CreateServerInput {
+  baseUrl: String!
+  name: String!
+  password: String!
+  username: String!
+}
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+"""
+The `JSON` scalar type represents JSON values as specified by [ECMA-404](http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf).
+"""
+scalar JSON
+
+input LoginInput {
+  email: String!
+  password: String!
+}
+
+type Mutation {
+  addCodepushCollaborator(appName: String!, email: String!, serverId: String!): JSON!
+  clearCodepushDeploymentHistory(appName: String!, deploymentName: String!, serverId: String!): Boolean!
+  codepushLogin(account: String!, password: String!, serverId: String!): JSON!
+  codepushLogout(serverId: String!): JSON!
+  createApiKey(input: CreateApiKeyInput!): ApiKey!
+  createAuditLog(action: String!, detail: String, entity: String!, entityId: String): AuditLog!
+  createCodepushAccessKey(input: CreateAccessKeyInput!): JSON!
+  createCodepushApp(input: CreateAppInput!): JSON!
+  createCodepushDeployment(input: CreateDeploymentInput!): JSON!
+  createServer(input: CreateServerInput!): Server!
+  deleteApiKey(id: String!): Boolean!
+  deleteCodepushAccessKey(name: String!, serverId: String!): Boolean!
+  deleteCodepushApp(appName: String!, serverId: String!): Boolean!
+  deleteCodepushDeployment(appName: String!, deploymentName: String!, serverId: String!): Boolean!
+  deleteServer(id: String!): Boolean!
+  login(input: LoginInput!): Auth!
+  promoteCodepushRelease(input: PromoteReleaseInput!): JSON!
+  register(input: RegisterInput!): Auth!
+  removeCodepushCollaborator(appName: String!, email: String!, serverId: String!): Boolean!
+  rollbackCodepushRelease(appName: String!, deploymentName: String!, label: String, serverId: String!): JSON!
+  transferCodepushApp(appName: String!, email: String!, serverId: String!): JSON!
+  updateCodepushApp(input: UpdateAppInput!): JSON!
+  updateCodepushDeployment(input: UpdateDeploymentInput!): JSON!
+  updateCodepushRelease(input: UpdateReleaseInput!): JSON!
+  updateServer(input: UpdateServerInput!): Server!
+}
+
+type PaginationInfo {
+  page: Int!
+  pageSize: Int!
+  total: Int!
+  totalPages: Int!
+}
+
+input PromoteReleaseInput {
+  appName: String!
+  appVersion: String
+  description: String
+  destDeploymentName: String!
+  isMandatory: Boolean
+  rollout: Float
+  serverId: String!
+  sourceDeploymentName: String!
+}
+
+type Query {
+  _health: String!
+  codepushAccessKeys(serverId: String!): [JSON!]!
+  codepushAccount(serverId: String!): JSON!
+  codepushApps(serverId: String!): [JSON!]!
+  codepushCollaborators(appName: String!, serverId: String!): JSON!
+  codepushDeployment(appName: String!, deploymentName: String!, serverId: String!): JSON!
+  codepushDeploymentMetrics(appName: String!, deploymentName: String!, serverId: String!): JSON!
+  codepushDeployments(appName: String!, serverId: String!): [JSON!]!
+  codepushReleaseHistory(appName: String!, deploymentName: String!, serverId: String!): [JSON!]!
+  getApiKeys: [ApiKey!]!
+  getAuditLogs(filter: AuditLogFilterInput): AuditLogListResponse!
+  getServers: [Server!]!
+  me: User!
+  server(id: String!): Server!
+}
+
+input RegisterInput {
+  email: String!
+  name: String
+  password: String!
+}
+
+type Server {
+  apiKey: String!
+  baseUrl: String!
+  createdAt: DateTime!
+  id: ID!
+  isOnline: Boolean!
+  name: String!
+  updatedAt: DateTime!
+  userId: String!
+  username: String!
+}
+
+input UpdateAppInput {
+  appName: String!
+  newName: String!
+  serverId: String!
+}
+
+input UpdateDeploymentInput {
+  appName: String!
+  deploymentName: String!
+  newName: String!
+  serverId: String!
+}
+
+input UpdateReleaseInput {
+  appName: String!
+  appVersion: String
+  deploymentName: String!
+  description: String
+  isDisabled: Boolean
+  isMandatory: Boolean
+  label: String!
+  rollout: Float
+  serverId: String!
+}
+
+input UpdateServerInput {
+  apiKey: String
+  baseUrl: String
+  id: String!
+  name: String
+  password: String
+  username: String
+}
+
+type User {
+  createdAt: DateTime!
+  email: String!
+  id: ID!
+  name: String
+  role: String!
+  updatedAt: DateTime!
+}

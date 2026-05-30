@@ -20,6 +20,9 @@ export class AuditLogModel {
   @Field()
   userId: string;
 
+  @Field({ nullable: true })
+  ip?: string;
+
   @Field()
   createdAt: Date;
 }
