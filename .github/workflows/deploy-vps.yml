@@ -193,20 +193,156 @@ jobs:
             sleep 5
           done
 
+      # ---- SSH 密钥配置 ----
+      - name: Setup SSH key & known_hosts
+        env:
+          SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
+        run: |
+          set -euo pipefail
+
+          # Validate SSH_KEY is set
+          if [ -z "$SSH_KEY" ]; then
+            echo "::error::SSH_PRIVATE_KEY secret is empty or not set."
+            echo "Please configure SSH_PRIVATE_KEY in repository secrets (Settings → Secrets and variables → Actions)."
+            echo ""
+            echo "Generate a key pair on your VPS if needed:"
+            echo "  ssh-keygen -t ed25519 -a 100 -f ~/.ssh/hyperpush-deploy -N ''"
+            echo "  cat ~/.ssh/hyperpush-deploy.pub >> ~/.ssh/authorized_keys"
+            echo "Then copy the PRIVATE key content into GitHub secret SSH_PRIVATE_KEY."
+            exit 1
+          fi
+
+          mkdir -p "$HOME/.ssh"
+          chmod 700 "$HOME/.ssh"
+
+          # Write key to file (preserves newlines from secret)
+          echo "Writing SSH key to $HOME/.ssh/hyperpush-deploy..."
+          echo "$SSH_KEY" > "$HOME/.ssh/hyperpush-deploy"
+          chmod 600 "$HOME/.ssh/hyperpush-deploy"
+
+          # Validate key looks like a valid private key
+          if ! head -1 "$HOME/.ssh/hyperpush-deploy" | grep -qE '^-----BEGIN (OPENSSH|RSA|EC|DSA) PRIVATE KEY-----'; then
+            echo "::warning::SSH_PRIVATE_KEY does not start with a valid private key header. Check the format."
+          fi
+
+          # Add host key to known_hosts to avoid host key verification prompts
+          echo "Adding $SSH_HOST:$SSH_PORT to known_hosts..."
+          ssh-keyscan -T 10 -p "$SSH_PORT" "$SSH_HOST" 2>/dev/null >> "$HOME/.ssh/known_hosts" || \
+            echo "::warning::ssh-keyscan failed for $SSH_HOST:$SSH_PORT (DNS resolution or connectivity issue)"
+
+          echo "::add-mask::$SSH_KEY"
+          echo "✅ SSH key written to $HOME/.ssh/hyperpush-deploy"
+
+      # ---- SSH 认证预检 ----
+      - name: 🔐 Verify SSH authentication
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USERNAME }}
+          SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
+        run: |
+          set -euo pipefail
+          echo "Testing SSH authentication to ${SSH_USER}@${SSH_HOST}:${SSH_PORT}..."
+          
+          OUTPUT=$(ssh -o StrictHostKeyChecking=accept-new \
+            -o BatchMode=yes \
+            -o ConnectTimeout=10 \
+            -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+            -i "$HOME/.ssh/hyperpush-deploy" \
+            -p "$SSH_PORT" \
+            "${SSH_USER}@${SSH_HOST}" \
+            "echo 'SSH_AUTH_OK'" 2>&1) || {
+            EXIT_CODE=$?
+            echo "::error::SSH authentication FAILED (exit code: ${EXIT_CODE})"
+            echo ""
+            echo "=== DEBUGGING TIPS ==="
+            echo "1️⃣  Check that the public key is installed on the VPS:"
+            echo "     ssh-copy-id -i ~/.ssh/hyperpush-deploy.pub ${SSH_USER}@${SSH_HOST}"
+            echo ""
+            echo "2️⃣  Verify the SSH_PRIVATE_KEY secret contains the full private key"
+            echo "    including the BEGIN/END lines, with proper line breaks."
+            echo ""
+            echo "3️⃣  Check SSH server config on VPS (/etc/ssh/sshd_config):"
+            echo "     PubkeyAuthentication yes"
+            echo "     AuthorizedKeysFile .ssh/authorized_keys"
+            echo ""
+            echo "4️⃣  Test manually from local machine:"
+            echo "     ssh -i keyfile -p ${SSH_PORT} ${SSH_USER}@${SSH_HOST}"
+            echo ""
+            echo "=== SSH OUTPUT ==="
+            echo "$OUTPUT"
+            exit 1
+          }
+          echo "✅ SSH authentication successful: ${OUTPUT}"
+
+      # ---- 远程目录初始化 ----
+      - name: 📁 Ensure remote target directory exists
+        env:
+          SSH_USER: ${{ secrets.SSH_USERNAME }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
+        run: |
+          set -euo pipefail
+          echo "Ensuring remote directory /opt/hyperpush/deploy exists..."
+          ssh -o StrictHostKeyChecking=accept-new \
+            -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+            -i "$HOME/.ssh/hyperpush-deploy" \
+            -p "$SSH_PORT" \
+            "${SSH_USER}@${SSH_HOST}" \
+            "set -e && \
+             mkdir -p /opt/hyperpush/deploy && \
+             echo '✅ Target directory ready:' && \
+             ls -ld /opt/hyperpush /opt/hyperpush/deploy"
+          echo "✅ Remote directory verified"
+
       # ---- SCP: 同步 compose 和 deploy 文件到 VPS ----
-      - name: Sync Compose & Deploy files to VPS
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USERNAME }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: ${{ secrets.SSH_PORT || '22' }}
-          source: "compose.yml,compose.codepush.yml,deploy/*"
-          target: /opt/hyperpush
-          strip_components: 0
-          overwrite: true
-          timeout: 120s
-          command_timeout: 15m
+      - name: 📦 Sync Compose & Deploy files to VPS (SCP)
+        env:
+          SSH_USER: ${{ secrets.SSH_USERNAME }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
+        run: |
+          set -euo pipefail
+
+          # Create a tar archive of all source files
+          echo "Creating archive of: compose.yml compose.codepush.yml deploy/"
+          tar czf /tmp/hyperpush-deploy.tar.gz \
+            compose.yml \
+            compose.codepush.yml \
+            deploy/
+
+          echo "Archive size: $(du -h /tmp/hyperpush-deploy.tar.gz | cut -f1)"
+
+          # SCP the archive to VPS (using native scp with explicit key)
+          echo "SCP archive to ${SSH_USER}@${SSH_HOST}:/tmp/..."
+          scp -o StrictHostKeyChecking=accept-new \
+            -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+            -i "$HOME/.ssh/hyperpush-deploy" \
+            -P "$SSH_PORT" \
+            -C \
+            /tmp/hyperpush-deploy.tar.gz \
+            "${SSH_USER}@${SSH_HOST}:/tmp/hyperpush-deploy.tar.gz"
+          echo "✅ Archive transferred successfully"
+
+          # Extract archive on remote server
+          echo "Extracting archive on remote server..."
+          ssh -o StrictHostKeyChecking=accept-new \
+            -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+            -i "$HOME/.ssh/hyperpush-deploy" \
+            -p "$SSH_PORT" \
+            "${SSH_USER}@${SSH_HOST}" \
+            "set -e && \
+             cd /opt/hyperpush && \
+             tar xzf /tmp/hyperpush-deploy.tar.gz && \
+             rm -f /tmp/hyperpush-deploy.tar.gz && \
+             echo '--- Files deployed ---' && \
+             ls -la compose.yml compose.codepush.yml deploy/ && \
+             echo '✅ Files extracted successfully'"
+
+          # Clean up local archive
+          rm -f /tmp/hyperpush-deploy.tar.gz
+          echo "✅ Local archive cleaned up"
 
       # ---- SSH: 部署到 VPS ----
       - name: Deploy via SSH
