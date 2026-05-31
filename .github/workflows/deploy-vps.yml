@@ -45,6 +45,8 @@ concurrency:
 
 env:
   REGISTRY: ghcr.io
+  # NOTE: IMAGE_NAME_APP/FRONTEND use ${{ github.repository_owner }} which may have uppercase letters.
+  # The lowercase versions are computed in the "Lowercase image names" step below.
   IMAGE_NAME_APP: ghcr.io/${{ github.repository_owner }}/hyperpush-app
   IMAGE_NAME_FRONTEND: ghcr.io/${{ github.repository_owner }}/hyperpush-frontend
 
@@ -344,14 +346,21 @@ jobs:
           rm -f /tmp/hyperpush-deploy.tar.gz
           echo "✅ Local archive cleaned up"
 
+      # ---- 计算小写镜像名 (Docker 强制要求小写) ----
+      - name: Set lowercase image names (Docker requirement)
+        run: |
+          OWNER_LC="${GITHUB_REPOSITORY_OWNER,,}"
+          echo "IMAGE_APP_LC=ghcr.io/${OWNER_LC}/hyperpush-app:latest" >> "$GITHUB_ENV"
+          echo "IMAGE_FRONTEND_LC=ghcr.io/${OWNER_LC}/hyperpush-frontend:latest" >> "$GITHUB_ENV"
+
       # ---- SSH: 部署到 VPS ----
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.2.0
         env:
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GHCR_USER: ${{ github.repository_owner }}
-          IMAGE_APP: ${{ env.IMAGE_NAME_APP }}:latest
-          IMAGE_FRONTEND: ${{ env.IMAGE_NAME_FRONTEND }}:latest
+          IMAGE_APP: ${{ env.IMAGE_APP_LC }}
+          IMAGE_FRONTEND: ${{ env.IMAGE_FRONTEND_LC }}
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
