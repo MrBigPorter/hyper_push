@@ -432,10 +432,20 @@ jobs:
               npx prisma migrate deploy 2>&1 || echo "⚠️ Migration may have already been applied"
 
             echo "========================================"
-            echo " 6/8 — Restart containers..."
+            echo " 6/8 — Free port 80 & restart containers..."
             echo "========================================"
-            # Stop old Caddy first to avoid "port is already allocated"
-            docker rm -f hyperpush-caddy 2>/dev/null || true
+            # Aggressively free port 80 — defeat anything holding it
+            echo "➡️  Checking for any Docker container binding host port 80..."
+            for cid in $(docker ps -q 2>/dev/null); do
+              if docker port "$cid" 80 2>/dev/null | grep -q '0.0.0.0:80'; then
+                echo "  Killing container $cid (using host port 80)..."
+                docker rm -f "$cid" 2>/dev/null || true
+              fi
+            done
+            # Also kill any host process on port 80 (nginx, old caddy, etc.)
+            echo "➡️  Checking for host process on port 80..."
+            fuser -k 80/tcp 2>/dev/null || true
+            sleep 2
             docker compose -f compose.yml -f deploy/compose.prod.yml up -d
 
             echo "========================================"
