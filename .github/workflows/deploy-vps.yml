@@ -509,7 +509,7 @@ jobs:
         continue-on-error: true
         timeout-minutes: 5
         env:
-          CONSOLE_URL: http://${{ secrets.CONSOLE_DOMAIN }}
+          CONSOLE_URL: https://${{ secrets.CONSOLE_DOMAIN }}
         run: |
           set -euo pipefail
           echo "→ Verifying from GitHub runner..."
