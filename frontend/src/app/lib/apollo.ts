@@ -2,8 +2,7 @@
 // HyperPush — Apollo Client Setup
 // ==========================================
 
-import { ApolloClient, InMemoryCache, createHttpLink, from } from '@apollo/client';
-import { setContext } from '@apollo/client/link/context';
+import { ApolloClient, InMemoryCache, HttpLink, ApolloLink } from '@apollo/client';
 
 const AUTH_TOKEN_KEY = 'hyperpush_token';
 
@@ -13,36 +12,23 @@ function getToken(): string | null {
   return localStorage.getItem(AUTH_TOKEN_KEY);
 }
 
-/** 保存 JWT token 到 localStorage */
-export function setToken(token: string | null): void {
-  if (token) {
-    localStorage.setItem(AUTH_TOKEN_KEY, token);
-  } else {
-    localStorage.removeItem(AUTH_TOKEN_KEY);
-  }
-}
-
-/** 清除 token (登出) */
-export function clearToken(): void {
-  localStorage.removeItem(AUTH_TOKEN_KEY);
-}
-
-const httpLink = createHttpLink({
-  uri: '/graphql',
+const httpLink = new HttpLink({
+  uri: import.meta.env.VITE_API_URL || '/graphql',
 });
 
-const authLink = setContext((_operation, { headers }) => {
+const authLink = new ApolloLink((operation, forward) => {
   const token = getToken();
-  return {
+  operation.setContext(({ headers = {} }) => ({
     headers: {
       ...headers,
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
-  };
+  }));
+  return forward(operation);
 });
 
 export const apolloClient = new ApolloClient({
-  link: from([authLink, httpLink]),
+  link: authLink.concat(httpLink),
   cache: new InMemoryCache(),
   defaultOptions: {
     watchQuery: {

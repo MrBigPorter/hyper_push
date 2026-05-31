@@ -72,25 +72,6 @@ services:
       - codepush
 
   # =========================================
-  # HyperPush 前端 (生产构建)
-  # =========================================
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      target: production
-    image: hyperpush-frontend:latest
-    container_name: hyperpush-frontend
-    restart: unless-stopped
-    expose:
-      - "80"
-    environment:
-      VITE_API_URL: https://${CONSOLE_DOMAIN}/graphql
-    depends_on:
-      app:
-        condition: service_healthy
-
-  # =========================================
   # code-push-server (生产)
   # =========================================
   codepush:

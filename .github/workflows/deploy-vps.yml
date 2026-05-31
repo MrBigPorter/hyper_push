@@ -45,10 +45,7 @@ concurrency:
 
 env:
   REGISTRY: ghcr.io
-  # NOTE: IMAGE_NAME_APP/FRONTEND use ${{ github.repository_owner }} which may have uppercase letters.
-  # The lowercase versions are computed in the "Lowercase image names" step below.
   IMAGE_NAME_APP: ghcr.io/${{ github.repository_owner }}/hyperpush-app
-  IMAGE_NAME_FRONTEND: ghcr.io/${{ github.repository_owner }}/hyperpush-frontend
 
 jobs:
   # =========================================
@@ -91,7 +88,7 @@ jobs:
         continue-on-error: true
 
   # =========================================
-  # 阶段 1: 构建 Docker 镜像 → 推送到 GHCR
+  # 阶段 1a: 构建后端 Docker 镜像 → 推送到 GHCR
   # =========================================
   build:
     needs: quality
@@ -114,7 +111,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # ---- 后端镜像 ----
       - name: Docker meta (backend)
         id: meta-app
         uses: docker/metadata-action@v5
@@ -137,34 +133,48 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # ---- 前端镜像 ----
-      - name: Docker meta (frontend)
-        id: meta-frontend
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.IMAGE_NAME_FRONTEND }}
-          tags: |
-            type=sha,prefix=
-            type=raw,value=latest
+  # =========================================
+  # 阶段 1b: 部署前端到 Cloudflare Pages
+  # =========================================
+  deploy-frontend:
+    needs: quality
+    runs-on: ${{ inputs.runner || 'ubuntu-latest' }}
+    permissions:
+      contents: read
 
-      - name: Build & Push Frontend
-        uses: docker/build-push-action@v6
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          context: ./frontend
-          file: ./frontend/Dockerfile
-          target: production
-          push: true
-          tags: ${{ steps.meta-frontend.outputs.tags }}
-          labels: ${{ steps.meta-frontend.outputs.labels }}
-          platforms: linux/amd64
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          node-version: 22
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm install
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build:only
+        env:
+          VITE_API_URL: https://${{ secrets.CONSOLE_DOMAIN }}/graphql
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy --project-name=hyperpush
+          workingDirectory: frontend
+          packageManager: npm
 
   # =========================================
   # 阶段 2: SSH 部署到 VPS
   # =========================================
   deploy:
-    needs: build
+    needs: [build, deploy-frontend]
     runs-on: ${{ inputs.runner || 'ubuntu-latest' }}
     environment: production
 
@@ -364,7 +374,6 @@ jobs:
         run: |
           OWNER_LC="${GITHUB_REPOSITORY_OWNER,,}"
           echo "IMAGE_APP_LC=ghcr.io/${OWNER_LC}/hyperpush-app:latest" >> "$GITHUB_ENV"
-          echo "IMAGE_FRONTEND_LC=ghcr.io/${OWNER_LC}/hyperpush-frontend:latest" >> "$GITHUB_ENV"
 
       # ---- SSH: 部署到 VPS ----
       - name: Deploy via SSH
@@ -373,7 +382,6 @@ jobs:
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GHCR_USER: ${{ github.repository_owner }}
           IMAGE_APP: ${{ env.IMAGE_APP_LC }}
-          IMAGE_FRONTEND: ${{ env.IMAGE_FRONTEND_LC }}
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
@@ -381,7 +389,7 @@ jobs:
           port: ${{ secrets.SSH_PORT || '22' }}
           timeout: 120s
           command_timeout: 30m
-          envs: GHCR_TOKEN,GHCR_USER,IMAGE_APP,IMAGE_FRONTEND
+          envs: GHCR_TOKEN,GHCR_USER,IMAGE_APP
           script: |
             set -e
             cd /opt/hyperpush
@@ -422,17 +430,15 @@ jobs:
             ENVEOF
 
             echo "========================================"
-            echo " 4/8 — Pull latest images..."
+            echo " 4/7 — Pull latest image..."
             echo "========================================"
             retry 4 10 docker pull "$IMAGE_APP"
-            retry 4 10 docker pull "$IMAGE_FRONTEND"
 
-            # Retag GHCR images to match compose.yml image names
+            # Retag GHCR image to match compose.yml image name
             docker tag "$IMAGE_APP" hyperpush:latest
-            docker tag "$IMAGE_FRONTEND" hyperpush-frontend:latest
 
             echo "========================================"
-            echo " 5/8 — Run DB migration..."
+            echo " 5/7 — Run DB migration..."
             echo "========================================"
             NETWORK=$(docker inspect hyperpush-db \
               --format '{{range $k,$v := .NetworkSettings.Networks}}{{$k}}{{end}}' \
@@ -445,7 +451,7 @@ jobs:
               npx prisma migrate deploy 2>&1 || echo "⚠️ Migration may have already been applied"
 
             echo "========================================"
-            echo " 6/8 — Free port 80 & restart containers..."
+            echo " 6/7 — Free port 80 & restart containers..."
             echo "========================================"
             # Aggressively free port 80 — defeat anything holding it
             echo "➡️  Checking for any Docker container binding host port 80..."
@@ -462,7 +468,7 @@ jobs:
             docker compose -f compose.yml -f deploy/compose.prod.yml up -d
 
             echo "========================================"
-            echo " 7/8 — Health check (max 90s)..."
+            echo " 7/7 — Health check (max 90s)..."
             echo "========================================"
             HEALTHY=false
             for i in $(seq 1 30); do
@@ -485,12 +491,7 @@ jobs:
             fi
 
             echo "========================================"
-            echo " 8/8 — Cleanup old images..."
-            echo "========================================"
-            docker image prune -f
-
-            echo "========================================"
-            echo " 9/9 — Reload Nginx config..."
+            echo " Reload Nginx config..."
             echo "========================================"
             if docker exec hyperpush-nginx nginx -t 2>&1; then
               docker exec hyperpush-nginx nginx -s reload
@@ -498,6 +499,9 @@ jobs:
             else
               echo " ⚠️ Nginx config syntax error! Check deploy/nginx-hyperpush.conf"
             fi
+
+            # Cleanup old images
+            docker image prune -f
 
             echo ""
             echo "✅ VPS Deployment complete!"
@@ -538,27 +542,11 @@ jobs:
           fi
           echo ""
 
-          # Frontend reachable with retry
-          echo "⏳ Checking frontend..."
-          FRONTEND_OK=false
-          for i in $(seq 1 5); do
-            HTTP_CODE=$(curl -sS --max-time 15 -o /dev/null -w "%{http_code}" \
-              "$CONSOLE_URL" 2>&1) && {
-              echo " ✅ Frontend HTTP: $HTTP_CODE"
-              FRONTEND_OK=true
-              break
-            } || {
-              echo " Attempt $i/5 — frontend not ready..."
-              sleep 15
-            }
-          done
-
-          echo ""
           if [ "$HEALTHY" = true ]; then
             echo "✅ External verification PASSED"
           else
             echo "⚠️ External verification failed after retries"
-            echo "  The deployment is running fine on the VPS."
+            echo "  The backend is running fine on the VPS."
             echo "  Check DNS A record for ${{ secrets.CONSOLE_DOMAIN }} points to VPS IP."
             exit 1
           fi
@@ -576,5 +564,6 @@ jobs:
           echo "  ssh root@VPS 'docker ps && docker exec hyperpush-app wget -qO- http://localhost:3000/graphql --post-data=\"{query:{_health}}\" --header=Content-Type:application/json'"
           echo ""
           echo "To configure DNS:"
-          echo "  Add A record: ${{ secrets.CONSOLE_DOMAIN }} → VPS_IP"
-          echo "  Add A record: ${{ secrets.CODEPUSH_DOMAIN }} → VPS_IP"
+          echo "  A record (API): ${{ secrets.CONSOLE_DOMAIN }} → VPS_IP"
+          echo "  A record (CodePush): ${{ secrets.CODEPUSH_DOMAIN }} → VPS_IP"
+          echo "  CNAME (Frontend): hyperpush.pages.dev → Cloudflare Pages (or custom domain)"
