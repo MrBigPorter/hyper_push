@@ -59,11 +59,6 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgresql://hyperpush:hyperpush123@db:5432/hyperpush}
       NODE_ENV: development
-    volumes:
-      - ./backend/src:/app/src
-      - ./backend/prisma:/app/prisma
-      - ./backend/package.json:/app/package.json
-      - prisma_client:/app/node_modules/.prisma
     depends_on:
       db:
         condition: service_healthy
@@ -91,11 +86,6 @@ services:
       - "5173:5173"
     environment:
       VITE_PROXY_TARGET: http://app:3000
-    volumes:
-      - ./frontend/src:/app/src
-      - ./frontend/index.html:/app/index.html
-      - ./frontend/vite.config.ts:/app/vite.config.ts
-      - ./frontend/package.json:/app/package.json
     depends_on:
       app:
         condition: service_healthy

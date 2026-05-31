@@ -59,8 +59,6 @@ services:
       NODE_ENV: production
       JWT_SECRET: ${JWT_SECRET}
       PUBLIC_URL: https://${CODEPUSH_DOMAIN}
-    # 生产环境不挂载源码卷（清空 compose.yml 中的开发 volume）
-    volumes: []
     depends_on:
       db:
         condition: service_healthy
@@ -89,8 +87,6 @@ services:
       - "80"
     environment:
       VITE_API_URL: https://${CONSOLE_DOMAIN}/graphql
-    # 生产环境不挂载源码卷（清空 compose.yml 中的开发 volume）
-    volumes: []
     depends_on:
       app:
         condition: service_healthy
