@@ -50,6 +50,8 @@ services:
     image: hyperpush:latest
     container_name: hyperpush-app
     restart: unless-stopped
+    ports:
+      - "3000:3000"
     expose:
       - "3000"
     env_file:
