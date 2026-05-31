@@ -31,6 +31,15 @@ export interface MeResponseData {
   me: User;
 }
 
+export interface UpdateUserInput {
+  id: string;
+  name?: string;
+}
+
+export interface UpdateUserResponseData {
+  updateUser: User;
+}
+
 // ─── Servers ────────────────────────────────────
 
 export interface ServersResponseData {
@@ -43,7 +52,6 @@ export interface ServerResponseData {
 
 export interface CreateServerInput {
   name: string;
-  baseUrl: string;
   username: string;
   password: string;
 }
@@ -55,7 +63,6 @@ export interface CreateServerResponseData {
 export interface UpdateServerInput {
   id: string;
   name?: string;
-  baseUrl?: string;
   username?: string;
   password?: string;
   apiKey?: string;

@@ -23,7 +23,6 @@ model User {
 model Server {
   id        String   @id @default(cuid())
   name      String
-  baseUrl   String
   username  String
   apiKey    String
   isOnline  Boolean  @default(false)

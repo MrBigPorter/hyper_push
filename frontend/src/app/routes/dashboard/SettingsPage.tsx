@@ -32,9 +32,9 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { GET_API_KEYS, CREATE_API_KEY, DELETE_API_KEY } from '@app/lib/graphql';
+import { GET_API_KEYS, CREATE_API_KEY, DELETE_API_KEY, UPDATE_USER_MUTATION } from '@app/lib/graphql';
 import type { ApiKey } from '@app/types/models';
-import type { ApiKeysResponseData } from '@app/types/graphql';
+import type { ApiKeysResponseData, UpdateUserResponseData } from '@app/types/graphql';
 
 interface ProfileFormData {
   name: string;
@@ -45,6 +45,7 @@ export function SettingsPage() {
   const user = useAppSelector((state) => state.auth.user);
   const dispatch = useAppDispatch();
   const [profileSaved, setProfileSaved] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [showNewKeyDialog, setShowNewKeyDialog] = useState(false);
   const [newKeyName, setNewKeyName] = useState('');
@@ -58,6 +59,7 @@ export function SettingsPage() {
   const [deleteApiKey] = useMutation(DELETE_API_KEY, {
     refetchQueries: [{ query: GET_API_KEYS }],
   });
+  const [updateUser] = useMutation(UPDATE_USER_MUTATION);
 
   const apiKeys: ApiKey[] = (data as ApiKeysResponseData | undefined)?.getApiKeys ?? [];
 
@@ -73,13 +75,23 @@ export function SettingsPage() {
   });
 
   const onProfileSubmit = async (data: ProfileFormData) => {
-    // Profile update would need a backend mutation; for now just show saved
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    if (user) {
-      dispatch(setUser({ ...user, name: data.name }));
+    if (!user) return;
+    setIsSaving(true);
+    try {
+      const result = await updateUser({
+        variables: { input: { id: user.id, name: data.name } },
+      });
+      const updatedUser = (result.data as UpdateUserResponseData)?.updateUser;
+      if (updatedUser) {
+        dispatch(setUser(updatedUser));
+      }
+      setProfileSaved(true);
+      setTimeout(() => setProfileSaved(false), 2000);
+    } catch (err) {
+      console.error('Failed to update profile:', err);
+    } finally {
+      setIsSaving(false);
     }
-    setProfileSaved(true);
-    setTimeout(() => setProfileSaved(false), 2000);
   };
 
   const handleCopyKey = async (id: string, key: string) => {
@@ -206,7 +218,7 @@ export function SettingsPage() {
           </div>
 
           <div className="flex items-center gap-3 pt-2">
-            <Button type="submit" variant="primary" disabled={profileSaved}>
+            <Button type="submit" variant="primary" disabled={profileSaved || isSaving} loading={isSaving}>
               {profileSaved ? (
                 <>
                   <Check className="mr-1 h-4 w-4" />

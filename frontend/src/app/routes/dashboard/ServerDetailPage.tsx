@@ -9,7 +9,6 @@ import { useQuery, useMutation } from '@apollo/client/react';
 import {
   ArrowLeft,
   Server,
-  Globe,
   User,
   KeyRound,
   Calendar,
@@ -57,7 +56,6 @@ export function ServerDetailPage() {
 
   const [editForm, setEditForm] = useState({
     name: '',
-    baseUrl: '',
     username: '',
   });
 
@@ -65,7 +63,6 @@ export function ServerDetailPage() {
   if (server && !isEditing && editForm.name === '') {
     setEditForm({
       name: server.name,
-      baseUrl: server.baseUrl,
       username: server.username,
     });
   }
@@ -78,7 +75,6 @@ export function ServerDetailPage() {
           input: {
             id: server.id,
             name: editForm.name,
-            baseUrl: editForm.baseUrl,
             username: editForm.username,
           },
         },
@@ -248,25 +244,6 @@ export function ServerDetailPage() {
               />
             ) : (
               <p className="text-gray-900 dark:text-gray-100">{server.name}</p>
-            )}
-          </div>
-
-          {/* Base URL */}
-          <div className="grid gap-1">
-            <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
-              <Globe className="mr-1 inline-block h-4 w-4" />
-              Base URL
-            </label>
-            {isEditing ? (
-              <input
-                value={editForm.baseUrl}
-                onChange={(e) => setEditForm({ ...editForm, baseUrl: e.target.value })}
-                className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:border-gray-600 dark:bg-dark-800 dark:text-gray-100"
-              />
-            ) : (
-              <code className="rounded bg-gray-100 px-2 py-1 text-sm text-gray-700 dark:bg-dark-800 dark:text-gray-300">
-                {server.baseUrl}
-              </code>
             )}
           </div>
 

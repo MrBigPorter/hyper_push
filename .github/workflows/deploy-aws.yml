@@ -1,0 +1,241 @@
+# ==========================================
+# HyperPush — ☁️ AWS Deployment (CDK + ECS Fargate)
+# ==========================================
+# 参考 JoyMini deploy-infra.yml 模式:
+#   - 使用 aws-actions/configure-aws-credentials 进行 AWS 认证
+#   - CDK 部署基础设施 (VPC, ECR, ECS, ALB, RDS)
+#   - GitHub Actions Runner 上构建镜像 → 推送到 ECR → 触发 ECS 滚动更新
+#
+# 前置条件 (一次性):
+#   1. 在 AWS 控制台创建 IAM User: hyperpush-github-actions
+#      附加策略: AdministratorAccess (或自定义最小权限)
+#   2. 在 GitHub Secrets 中添加:
+#      AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
+#   3. 首次部署后，在 Route53 添加 ALB DNS 指向的 A 记录
+#   4. ACM SSL 证书需要 DNS 验证 — 在 Route53 添加 CNAME 记录
+# ==========================================
+
+name: Deploy AWS
+
+on:
+  workflow_dispatch:
+    inputs:
+      runner:
+        description: "🖥️ Runner"
+        type: choice
+        options: [ubuntu-latest, self-hosted]
+        default: ubuntu-latest
+      cdk_deploy:
+        description: "🏗️ Deploy/Update CDK infrastructure"
+        type: boolean
+        default: true
+  workflow_call:
+    inputs:
+      runner:
+        description: "Runner to use"
+        type: string
+        default: ubuntu-latest
+
+env:
+  AWS_REGION: ap-southeast-1
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: deploy-aws-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # =========================================
+  # Job 1: CDK Infrastructure Deploy
+  # =========================================
+  infra:
+    name: 🏗️ CDK Infrastructure
+    runs-on: ${{ inputs.runner || 'ubuntu-latest' }}
+    environment: production
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install CDK dependencies
+        working-directory: infra
+        run: npm install
+
+      - name: CDK Bootstrap (first time only)
+        working-directory: infra
+        run: npx cdk bootstrap --require-approval never 2>&1 || echo "Already bootstrapped"
+
+      - name: CDK Deploy
+        working-directory: infra
+        run: npx cdk deploy --require-approval never 2>&1
+
+      - name: Deploy Summary
+        if: always()
+        run: |
+          cat <<EOF >> "$GITHUB_STEP_SUMMARY"
+          ## 🏗️ CDK Infrastructure Deploy
+
+          - Stack: \`HyperPushStack\`
+          - Region: \`${{ env.AWS_REGION }}\`
+          - Commit: \`${{ github.sha }}\`
+          - Status: ${{ job.status }}
+          EOF
+
+  # =========================================
+  # Job 2: Build & Push Docker images to ECR
+  # =========================================
+  build:
+    name: 📦 Build & Push to ECR
+    runs-on: ${{ inputs.runner || 'ubuntu-latest' }}
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # ---- Build & Push Backend ----
+      - name: Build & Push Backend to ECR
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          target: production
+          push: true
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/hyperpush-app:latest
+            ${{ steps.login-ecr.outputs.registry }}/hyperpush-app:${{ github.sha }}
+          platforms: linux/amd64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # ---- Build & Push Frontend ----
+      - name: Build & Push Frontend to ECR
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          target: production
+          push: true
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/hyperpush-frontend:latest
+            ${{ steps.login-ecr.outputs.registry }}/hyperpush-frontend:${{ github.sha }}
+          platforms: linux/amd64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build Summary
+        run: |
+          cat <<EOF >> "$GITHUB_STEP_SUMMARY"
+          ## 📦 ECR Image Push
+
+          - Backend: \`${{ steps.login-ecr.outputs.registry }}/hyperpush-app:latest\`
+          - Frontend: \`${{ steps.login-ecr.outputs.registry }}/hyperpush-frontend:latest\`
+          - Commit SHA tag: \`${{ github.sha }}\`
+          EOF
+
+  # =========================================
+  # Job 3: Force ECS Service Update
+  # =========================================
+  deploy-ecs:
+    name: 🚢 Update ECS Services
+    needs: [infra, build]
+    runs-on: ${{ inputs.runner || 'ubuntu-latest' }}
+    environment: production
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Force new deployment — Backend
+        run: |
+          echo "→ Forcing new deployment for hyperpush-app..."
+          aws ecs update-service \
+            --cluster hyperpush-cluster \
+            --service hyperpush-app \
+            --region ${{ env.AWS_REGION }} \
+            --force-new-deployment \
+            --output json > /dev/null
+          echo "✅ Backend service update triggered"
+
+      - name: Force new deployment — Frontend
+        run: |
+          echo "→ Forcing new deployment for hyperpush-frontend..."
+          aws ecs update-service \
+            --cluster hyperpush-cluster \
+            --service hyperpush-frontend \
+            --region ${{ env.AWS_REGION }} \
+            --force-new-deployment \
+            --output json > /dev/null
+          echo "✅ Frontend service update triggered"
+
+      - name: Wait for services stable
+        run: |
+          echo "→ Waiting for backend service to stabilize..."
+          aws ecs wait services-stable \
+            --cluster hyperpush-cluster \
+            --services hyperpush-app \
+            --region ${{ env.AWS_REGION }} \
+            2>/dev/null || true
+
+          echo "→ Waiting for frontend service to stabilize..."
+          aws ecs wait services-stable \
+            --cluster hyperpush-cluster \
+            --services hyperpush-frontend \
+            --region ${{ env.AWS_REGION }} \
+            2>/dev/null || true
+
+          echo "✅ ECS services stable"
+
+      - name: Verify ECS services
+        run: |
+          echo "### 🚢 ECS Service Status" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          for service in hyperpush-app hyperpush-frontend; do
+            STATUS=$(aws ecs describe-services \
+              --cluster hyperpush-cluster \
+              --services "$service" \
+              --region ${{ env.AWS_REGION }} \
+              --query 'services[0].{status:status,running:runningCount,desired:desiredCount}' \
+              --output text)
+            echo "- **$service**: $STATUS" >> "$GITHUB_STEP_SUMMARY"
+          done
+
+      - name: Deploy Complete
+        run: |
+          echo "✅ AWS Deployment complete!"
+          echo "  ALB DNS: retrieve from AWS Console > EC2 > Load Balancers > hyperpush-alb"

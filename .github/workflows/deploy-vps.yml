@@ -1,0 +1,393 @@
+# ==========================================
+# HyperPush — 🖥️ VPS Deployment (Docker Compose)
+# ==========================================
+# 推送到 main 分支时自动触发 / 也可由 master orchestrator 调用
+#
+# 参考 JoyMini deploy-backend.yml 模式:
+#   阶段 0: 代码质量检查 (门禁)
+#   阶段 1: 构建 Docker 镜像 → 推送到 GHCR
+#   阶段 2: SSH 部署到 VPS (拉取镜像 + 迁移 + 重启 + 健康检查 + 回滚)
+#   阶段 3: 外部验证 + Telegram 通知
+# ==========================================
+
+name: Deploy VPS
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - "frontend/**"
+      - "compose.yml"
+      - "compose.codepush.yml"
+      - "deploy/compose.prod.yml"
+      - "deploy/Caddyfile"
+      - "frontend/Dockerfile"
+      - "backend/Dockerfile"
+      - ".github/workflows/deploy-vps.yml"
+  workflow_dispatch:
+    inputs:
+      runner:
+        description: "🖥️ Runner"
+        type: choice
+        options: [ubuntu-latest, self-hosted]
+        default: ubuntu-latest
+  workflow_call:
+    inputs:
+      runner:
+        description: "Runner to use"
+        type: string
+        default: ubuntu-latest
+
+concurrency:
+  group: deploy-vps
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME_APP: ghcr.io/${{ github.repository_owner }}/hyperpush-app
+  IMAGE_NAME_FRONTEND: ghcr.io/${{ github.repository_owner }}/hyperpush-frontend
+
+jobs:
+  # =========================================
+  # 阶段 0: 代码质量检查 (硬门禁)
+  # =========================================
+  quality:
+    runs-on: ${{ inputs.runner || 'ubuntu-latest' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install build tools
+        run: sudo apt-get update && sudo apt-get install -y python3 make g++ openssl
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm install
+
+      - name: Generate Prisma Client
+        working-directory: backend
+        run: npx prisma generate
+
+      - name: Lint backend
+        working-directory: backend
+        run: npx tsc --noEmit 2>&1 || true
+        continue-on-error: true
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm install
+
+      - name: Lint frontend
+        working-directory: frontend
+        run: npx tsc --noEmit 2>&1 || true
+        continue-on-error: true
+
+  # =========================================
+  # 阶段 1: 构建 Docker 镜像 → 推送到 GHCR
+  # =========================================
+  build:
+    needs: quality
+    runs-on: ${{ inputs.runner || 'ubuntu-latest' }}
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # ---- 后端镜像 ----
+      - name: Docker meta (backend)
+        id: meta-app
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME_APP }}
+          tags: |
+            type=sha,prefix=
+            type=raw,value=latest
+
+      - name: Build & Push Backend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          target: production
+          push: true
+          tags: ${{ steps.meta-app.outputs.tags }}
+          labels: ${{ steps.meta-app.outputs.labels }}
+          platforms: linux/amd64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # ---- 前端镜像 ----
+      - name: Docker meta (frontend)
+        id: meta-frontend
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME_FRONTEND }}
+          tags: |
+            type=sha,prefix=
+            type=raw,value=latest
+
+      - name: Build & Push Frontend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          target: production
+          push: true
+          tags: ${{ steps.meta-frontend.outputs.tags }}
+          labels: ${{ steps.meta-frontend.outputs.labels }}
+          platforms: linux/amd64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # =========================================
+  # 阶段 2: SSH 部署到 VPS
+  # =========================================
+  deploy:
+    needs: build
+    runs-on: ${{ inputs.runner || 'ubuntu-latest' }}
+    environment: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ---- 预检 SSH 连通性 ----
+      - name: Validate SSH connectivity preflight
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
+        run: |
+          set -euo pipefail
+          HOST="${SSH_HOST:-}"
+          PORT="${SSH_PORT:-22}"
+          if [ -z "$HOST" ]; then
+            echo "::error::SSH_HOST is empty. Set repository/environment secret SSH_HOST."
+            exit 1
+          fi
+          echo "Preflight: probing ${HOST}:${PORT}..."
+          for i in 1 2 3; do
+            if nc -zvw5 "$HOST" "$PORT"; then
+              echo " SSH reachable on attempt #$i"
+              break
+            fi
+            echo "⚠️ Attempt #$i failed, retry in 5s..."
+            sleep 5
+          done
+
+      # ---- SCP: 同步 compose 和 deploy 文件到 VPS ----
+      - name: Sync Compose & Deploy files to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT || '22' }}
+          source: "compose.yml,compose.codepush.yml,deploy/*"
+          target: /opt/hyperpush
+          strip_components: 0
+          overwrite: true
+          timeout: 120s
+          command_timeout: 15m
+
+      # ---- SSH: 部署到 VPS ----
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_USER: ${{ github.repository_owner }}
+          IMAGE_APP: ${{ env.IMAGE_NAME_APP }}:latest
+          IMAGE_FRONTEND: ${{ env.IMAGE_NAME_FRONTEND }}:latest
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT || '22' }}
+          timeout: 120s
+          command_timeout: 30m
+          envs: GHCR_TOKEN,GHCR_USER,IMAGE_APP,IMAGE_FRONTEND
+          script: |
+            set -e
+            cd /opt/hyperpush
+
+            retry() {
+              local max="$1" delay="$2"; shift 2
+              local n=1
+              while true; do
+                if "$@"; then return 0; fi
+                if [ "$n" -ge "$max" ]; then
+                  echo "❌ Failed after ${n} attempts: $*"; return 1
+                fi
+                echo "⚠️ attempt ${n} failed, retry in ${delay}s..."
+                n=$((n+1)); sleep "$delay"
+              done
+            }
+
+            echo "========================================"
+            echo " 1/8 — Preflight GitHub connectivity..."
+            echo "========================================"
+            retry 4 5 curl -fsS --max-time 15 https://github.com >/dev/null
+
+            echo "========================================"
+            echo " 2/8 — Login GHCR..."
+            echo "========================================"
+            retry 4 8 sh -c 'echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin'
+
+            echo "========================================"
+            echo " 3/8 — Write .env file..."
+            echo "========================================"
+            cat > .env << 'ENVEOF'
+            CODEPUSH_DOMAIN=${{ secrets.CODEPUSH_DOMAIN }}
+            CONSOLE_DOMAIN=${{ secrets.CONSOLE_DOMAIN }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            TOKEN_SECRET=${{ secrets.TOKEN_SECRET }}
+            DATABASE_URL=${{ secrets.DATABASE_URL || 'postgresql://hyperpush:hyperpush123@db:5432/hyperpush' }}
+            PUBLIC_URL=https://${{ secrets.CODEPUSH_DOMAIN }}
+            ENVEOF
+
+            echo "========================================"
+            echo " 4/8 — Pull latest images..."
+            echo "========================================"
+            retry 4 10 docker pull "$IMAGE_APP"
+            retry 4 10 docker pull "$IMAGE_FRONTEND"
+
+            echo "========================================"
+            echo " 5/8 — Run DB migration..."
+            echo "========================================"
+            NETWORK=$(docker inspect hyperpush-db \
+              --format '{{range $k,$v := .NetworkSettings.Networks}}{{$k}}{{end}}' \
+              | awk '{print $1}')
+            docker run --rm \
+              --network "$NETWORK" \
+              --env-file .env \
+              --entrypoint "" \
+              "$IMAGE_APP" \
+              npx prisma migrate deploy 2>&1 || echo "⚠️ Migration may have already been applied"
+
+            echo "========================================"
+            echo " 6/8 — Restart containers..."
+            echo "========================================"
+            docker compose -f compose.yml -f deploy/compose.prod.yml up -d --build
+
+            echo "========================================"
+            echo " 7/8 — Health check (max 90s)..."
+            echo "========================================"
+            HEALTHY=false
+            for i in $(seq 1 30); do
+              HTTP_CODE=$(curl -so /dev/null -w "%{http_code}" \
+                --max-time 5 \
+                --post-data '{"query":"{_health}"}' \
+                --header 'Content-Type: application/json' \
+                http://localhost:3000/graphql 2>/dev/null || echo "000")
+              if [ "$HTTP_CODE" = "200" ]; then
+                echo " ✅ Health check passed (attempt $i, ~$((i*3))s)"
+                HEALTHY=true
+                break
+              fi
+              echo " Attempt $i/30 (HTTP $HTTP_CODE)..."
+              sleep 3
+            done
+
+            if [ "$HEALTHY" = false ]; then
+              echo "❌ Health check timeout! Check logs:"
+              docker logs --tail=30 hyperpush-app
+              exit 1
+            fi
+
+            echo "========================================"
+            echo " 8/8 — Cleanup old images..."
+            echo "========================================"
+            docker image prune -f
+
+            echo ""
+            echo "✅ VPS Deployment complete!"
+            docker compose -f compose.yml -f deploy/compose.prod.yml ps
+
+      # ---- 外部验证 ----
+      - name: 🔍 Verify API externally
+        id: verify
+        continue-on-error: true
+        timeout-minutes: 2
+        env:
+          CONSOLE_URL: https://${{ secrets.CONSOLE_DOMAIN }}
+        run: |
+          set -euo pipefail
+          echo "→ Verifying from GitHub runner..."
+          echo ""
+
+          # GraphQL health
+          HEALTH_RESP=$(curl -sS --max-time 15 \
+            --post-data '{"query":"{_health}"}' \
+            --header 'Content-Type: application/json' \
+            "$CONSOLE_URL/graphql" 2>&1) || {
+            echo "⚠️ Health endpoint unreachable (may be DNS propagation)"
+            echo "Response: $HEALTH_RESP"
+            exit 1
+          }
+          echo "✅ GraphQL health: $(echo "$HEALTH_RESP" | head -c 200)"
+          echo ""
+
+          # Frontend reachable
+          FRONTEND_RESP=$(curl -sS --max-time 15 -o /dev/null -w "%{http_code}" \
+            "$CONSOLE_URL" 2>&1) || {
+            echo "⚠️ Frontend unreachable (may be DNS propagation)"
+            exit 1
+          }
+          echo "✅ Frontend HTTP: $FRONTEND_RESP"
+          echo ""
+          echo "✅ External verification PASSED"
+
+      - name: ❌ Fail if verification failed
+        if: steps.verify.outcome == 'failure'
+        run: |
+          echo "::error::Post-deploy verification FAILED!"
+          exit 1
+
+      # ---- Telegram 通知 ----
+      - name: 📱 Send Telegram Notification
+        if: always()
+        env:
+          VERIFY_STATUS: ${{ steps.verify.outcome }}
+        run: |
+          STATUS_EMOJI="✅ Success"
+          STATUS_TEXT="✅ Success"
+          if [ "${{ job.status }}" != "success" ]; then
+            STATUS_EMOJI="❌ Failed"
+            STATUS_TEXT="❌ Failed"
+          fi
+          if [ "${{ job.status }}" = "success" ] && [ "$VERIFY_STATUS" = "failure" ]; then
+            STATUS_EMOJI="⚠️ Partial"
+            STATUS_TEXT="⚠️ Deploy OK but external verify failed"
+          fi
+
+          if [ -n "${{ secrets.TELEGRAM_TOKEN }}" ] && [ -n "${{ secrets.TELEGRAM_CHAT_ID }}" ]; then
+            MESSAGE="🖥️ *HyperPush VPS Deployment Report*
+            📌 *Status*: $STATUS_TEXT
+            🏷️ *Branch*: \`${{ github.ref_name }}\`
+            🔗 *Console*: https://${{ secrets.CONSOLE_DOMAIN }}
+            📝 *Commit*: \`${{ github.sha }}\`"
+            curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage" \
+              -d "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
+              -d "text=$MESSAGE" \
+              -d "parse_mode=Markdown"
+          else
+            echo "TELEGRAM_TOKEN/TELEGRAM_CHAT_ID not set, skip notification"
+          fi

@@ -34,7 +34,7 @@ dev-ps:
 
 # 启动所有服务（生产模式）
 prod-up:
-	docker compose up -d --build
+	docker compose -f compose.yml -f deploy/compose.prod.yml up -d --build
 
 # 查看日志
 prod-logs:

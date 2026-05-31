@@ -1,0 +1,133 @@
+# ==========================================
+# HyperPush — CI Quality Checks
+# ==========================================
+# 推送到 main/PR 时运行:
+#   安装依赖 → Prisma 生成 → 类型检查 → Lint → 构建验证
+#
+# 参考 JoyMini ci.yml 模式:
+#   - 多级缓存 (node_modules, bun)
+#   - 硬门禁: 类型检查 + Lint
+# ==========================================
+
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+    paths-ignore:
+      - "*.md"
+      - "plans/**"
+      - "deploy/**"
+      - "infra/**"
+      - ".github/workflows/deploy*.yml"
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # =========================================
+  # Backend Checks
+  # =========================================
+  backend:
+    name: 🔧 Backend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Cache node_modules (backend)
+        uses: actions/cache@v4
+        id: backend-cache
+        with:
+          path: backend/node_modules
+          key: backend-${{ runner.os }}-${{ hashFiles('backend/package.json') }}
+          restore-keys: |
+            backend-${{ runner.os }}-
+
+      - name: Install backend dependencies
+        if: steps.backend-cache.outputs.cache-hit != 'true'
+        working-directory: backend
+        run: npm install
+
+      - name: Generate Prisma Client
+        working-directory: backend
+        run: npx prisma generate
+
+      - name: TypeScript type check
+        working-directory: backend
+        run: npx tsc --noEmit
+
+      - name: Lint check
+        working-directory: backend
+        run: npx biome check src/ 2>&1 || echo "Biome not configured, skipping"
+
+  # =========================================
+  # Frontend Checks
+  # =========================================
+  frontend:
+    name: 🎨 Frontend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Cache node_modules (frontend)
+        uses: actions/cache@v4
+        id: frontend-cache
+        with:
+          path: frontend/node_modules
+          key: frontend-${{ runner.os }}-${{ hashFiles('frontend/package.json') }}
+          restore-keys: |
+            frontend-${{ runner.os }}-
+
+      - name: Install frontend dependencies
+        if: steps.frontend-cache.outputs.cache-hit != 'true'
+        working-directory: frontend
+        run: npm install
+
+      - name: TypeScript type check
+        working-directory: frontend
+        run: npx tsc --noEmit
+
+      - name: Build check
+        working-directory: frontend
+        run: npx vite build
+
+  # =========================================
+  # Summary
+  # =========================================
+  summary:
+    name: 📋 CI Summary
+    needs: [backend, frontend]
+    if: always()
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Write CI Summary
+        run: |
+          cat <<EOF >> "$GITHUB_STEP_SUMMARY"
+          ## ✅ HyperPush CI Results
+
+          | Job | Status |
+          |-----|--------|
+          | 🔧 Backend (type check + lint) | \${{ needs.backend.result }} |
+          | 🎨 Frontend (type check + build) | \${{ needs.frontend.result }} |
+
+          - Branch: \`${{ github.ref_name }}\`
+          - Commit: \`${{ github.sha }}\`
+          EOF

@@ -27,7 +27,6 @@ export type ServerStatus = 'online' | 'offline' | 'unknown';
 export interface Server {
   id: string;
   name: string;
-  baseUrl: string;
   username: string;
   apiKey: string;
   isOnline: boolean;

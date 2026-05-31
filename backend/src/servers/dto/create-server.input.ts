@@ -9,10 +9,6 @@ export class CreateServerInput {
 
   @Field()
   @IsString()
-  baseUrl!: string;
-
-  @Field()
-  @IsString()
   username!: string;
 
   @Field()

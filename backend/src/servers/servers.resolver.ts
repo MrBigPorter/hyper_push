@@ -1,8 +1,8 @@
 import { Resolver, Query, Mutation, Args, Context } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { ServersService } from './servers.service.js';
-import { CreateServerInput } from './dto/create-server.input.js';
-import { UpdateServerInput } from './dto/update-server.input.js';
+import { CreateServerInput } from '@/servers/dto';
+import { UpdateServerInput } from '@/servers/dto';
 import { ServerModel } from './models/server.model.js';
 import { GqlAuthGuard } from '@/auth/guards/gql-auth.guard.js';
 

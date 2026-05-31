@@ -9,9 +9,6 @@ export class ServerModel {
   name: string;
 
   @Field()
-  baseUrl: string;
-
-  @Field()
   username: string;
 
   @Field()

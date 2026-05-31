@@ -1,0 +1,20 @@
+{
+  "name": "hyperpush-infra",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "cdk": "cdk",
+    "deploy": "npx cdk deploy --require-approval never",
+    "synth": "npx cdk synth",
+    "destroy": "npx cdk destroy"
+  },
+  "dependencies": {
+    "aws-cdk-lib": "^2.180.0",
+    "constructs": "^10.4.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.19"
+  }
+}

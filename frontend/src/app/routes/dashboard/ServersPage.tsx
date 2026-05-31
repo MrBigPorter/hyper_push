@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { useQuery, useMutation } from '@apollo/client/react';
 import { Card, CardHeader, Button } from '@app/components/ui';
-import { Plus, Server, Globe, User, KeyRound } from 'lucide-react';
+import { Plus, Server, User, KeyRound } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -24,7 +24,6 @@ import type { ServersResponseData } from '@app/types/graphql';
 
 interface CreateServerForm {
   name: string;
-  baseUrl: string;
   username: string;
   password: string;
 }
@@ -34,7 +33,6 @@ export function ServersPage() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<CreateServerForm>({
     name: '',
-    baseUrl: '',
     username: '',
     password: '',
   });
@@ -55,14 +53,13 @@ export function ServersPage() {
         variables: {
           input: {
             name: form.name,
-            baseUrl: form.baseUrl,
             username: form.username,
             password: form.password,
           },
         },
       });
       setOpen(false);
-      setForm({ name: '', baseUrl: '', username: '', password: '' });
+      setForm({ name: '', username: '', password: '' });
     } catch (err) {
       console.error('Failed to create server:', err);
     }
@@ -82,7 +79,6 @@ export function ServersPage() {
 
   const isFormValid =
     form.name.trim() &&
-    form.baseUrl.trim() &&
     form.username.trim() &&
     form.password.trim();
 
@@ -122,24 +118,6 @@ export function ServersPage() {
                     placeholder="e.g. Production Server"
                     value={form.name}
                     onChange={(e) => updateField('name', e.target.value)}
-                    className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:border-gray-600 dark:bg-dark-800 dark:text-gray-100"
-                  />
-                </div>
-
-                {/* Base URL */}
-                <div>
-                  <label
-                    htmlFor="server-baseurl"
-                    className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
-                  >
-                    <Globe className="mr-1 inline-block h-4 w-4" />
-                    Base URL
-                  </label>
-                  <input
-                    id="server-baseurl"
-                    placeholder="https://codepush.example.com"
-                    value={form.baseUrl}
-                    onChange={(e) => updateField('baseUrl', e.target.value)}
                     className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:border-gray-600 dark:bg-dark-800 dark:text-gray-100"
                   />
                 </div>
@@ -190,7 +168,7 @@ export function ServersPage() {
                   variant="ghost"
                   onClick={() => {
                     setOpen(false);
-                    setForm({ name: '', baseUrl: '', username: '', password: '' });
+                    setForm({ name: '', username: '', password: '' });
                   }}
                 >
                   Cancel
@@ -244,7 +222,7 @@ export function ServersPage() {
                       {server.name}
                     </p>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {server.baseUrl}
+                      {server.username}
                     </p>
                   </div>
                 </div>

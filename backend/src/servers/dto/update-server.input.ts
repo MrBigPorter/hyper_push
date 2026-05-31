@@ -15,11 +15,6 @@ export class UpdateServerInput {
   @Field({ nullable: true })
   @IsOptional()
   @IsString()
-  baseUrl?: string;
-
-  @Field({ nullable: true })
-  @IsOptional()
-  @IsString()
   username?: string;
 
   @Field({ nullable: true })

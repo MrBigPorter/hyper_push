@@ -1,8 +1,7 @@
 import { Resolver, Query, Mutation, Args, Context } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service.js';
-import { LoginInput } from '@/auth/dto';
-import { RegisterInput } from '@/auth/dto';
+import { LoginInput, RegisterInput, UpdateUserInput } from '@/auth/dto';
 import { AuthModel } from './models/auth.model.js';
 import { UserModel } from './models/user.model.js';
 import { GqlAuthGuard } from '@/auth/guards/gql-auth.guard.js';
@@ -23,6 +22,14 @@ export class AuthResolver {
     @Args('input', { type: () => RegisterInput }) input: RegisterInput,
   ) {
     return this.authService.register(input);
+  }
+
+  @Mutation(() => UserModel)
+  @UseGuards(GqlAuthGuard)
+  async updateUser(
+    @Args('input', { type: () => UpdateUserInput }) input: UpdateUserInput,
+  ) {
+    return this.authService.updateUser(input);
   }
 
   @Query(() => UserModel)

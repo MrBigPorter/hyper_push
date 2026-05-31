@@ -1,0 +1,218 @@
+# ==========================================
+# HyperPush — Production Docker Compose
+# ==========================================
+# 使用方法:
+#   docker compose -f compose.yml -f deploy/compose.prod.yml up -d --build
+#
+# 前置条件:
+#   1. 购买域名并解析 A 记录到服务器 IP
+#   2. 开放防火墙 80/443 端口
+#   3. 设置环境变量:
+#      export CODEPUSH_DOMAIN=codepush.yourdomain.com
+#      export CONSOLE_DOMAIN=console.yourdomain.com
+#      export TOKEN_SECRET=$(openssl rand -base64 48 | tr -dc 'A-Za-z0-9' | head -c63)
+#      export JWT_SECRET="your-strong-jwt-secret"
+#      export DATABASE_URL="postgresql://hyperpush:hyperpush123@db:5432/hyperpush"
+# ==========================================
+
+services:
+  # =========================================
+  # Caddy — 反向代理 + 自动 TLS
+  # =========================================
+  caddy:
+    image: caddy:2-alpine
+    container_name: hyperpush-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      app:
+        condition: service_healthy
+      codepush:
+        condition: service_started
+    networks:
+      - default
+      - codepush
+
+  # =========================================
+  # HyperPush 后端 (生产模式)
+  # =========================================
+  app:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: production
+    image: hyperpush:latest
+    container_name: hyperpush-app
+    restart: unless-stopped
+    expose:
+      - "3000"
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql://hyperpush:hyperpush123@db:5432/hyperpush}
+      NODE_ENV: production
+      JWT_SECRET: ${JWT_SECRET}
+      PUBLIC_URL: https://${CODEPUSH_DOMAIN}
+    # 生产环境不挂载源码卷
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- --post-data='{\"query\":\"{_health}\"}' --header='Content-Type: application/json' http://localhost:3000/graphql >/dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
+    networks:
+      - default
+      - codepush
+
+  # =========================================
+  # HyperPush 前端 (生产构建)
+  # =========================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: production
+    image: hyperpush-frontend:latest
+    container_name: hyperpush-frontend
+    restart: unless-stopped
+    expose:
+      - "80"
+    environment:
+      VITE_API_URL: https://${CONSOLE_DOMAIN}/graphql
+    depends_on:
+      app:
+        condition: service_healthy
+
+  # =========================================
+  # code-push-server (生产)
+  # =========================================
+  codepush:
+    image: node:18-alpine
+    container_name: hyperpush-codepush-prod
+    restart: unless-stopped
+    command: >
+      sh -c "
+        echo '>>> Installing code-push-server...' &&
+        npm install -g code-push-server@5.7.1 &&
+        echo '>>> Waiting for MySQL...' &&
+        mysql_ready=false &&
+        for i in \$$(seq 1 30); do
+          if node -e \"require('net').createConnection({host:'codepush-mysql',port:3306},function(){process.exit(0)}).on('error',function(){process.exit(1)})\" 2>/dev/null; then
+            echo '  MySQL is ready!'; mysql_ready=true; break
+          fi
+          echo \"  attempt \$$i/30...\"; sleep 2
+        done &&
+        [ \"\$$mysql_ready\" = true ] || exit 1 &&
+        echo '>>> Initializing DB schema...' &&
+        code-push-server-db init --dbhost codepush-mysql --dbuser root --dbport 3306 --force &&
+        echo '>>> Starting code-push-server...' &&
+        code-push-server
+      "
+    environment:
+      - RDS_HOST=codepush-mysql
+      - RDS_PORT=3306
+      - RDS_USERNAME=root
+      - DATA_BASE=codepush
+      - STORAGE_TYPE=local
+      - STORAGE_DIR=/data/storage
+      # ★ 关键: 改为公网下载地址
+      - LOCAL_DOWNLOAD_URL=https://${CODEPUSH_DOMAIN}/download
+      - DATA_DIR=/data/tmp
+      - TOKEN_SECRET=${TOKEN_SECRET}
+      - PORT=3000
+      - NODE_ENV=production
+      - REDIS_HOST=codepush-redis
+      - REDIS_PORT=6379
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('net').createConnection({port:3000,host:'localhost'},()=>process.exit(0)).on('error',()=>process.exit(1))\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 90s
+    volumes:
+      - codepush-storage:/data/storage
+      - codepush-tmp:/data/tmp
+    depends_on:
+      codepush-mysql:
+        condition: service_healthy
+      codepush-redis:
+        condition: service_healthy
+    expose:
+      - "3000"
+    networks: [codepush]
+
+  # =========================================
+  # 数据库 (保持不变)
+  # =========================================
+  db:
+    image: postgres:16-alpine
+    container_name: hyperpush-db
+    restart: unless-stopped
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: hyperpush
+      POSTGRES_PASSWORD: hyperpush123
+      POSTGRES_DB: hyperpush
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hyperpush"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    expose:
+      - "5432"
+
+  codepush-mysql:
+    image: mysql:8.0
+    container_name: hyperpush-codepush-mysql
+    restart: unless-stopped
+    volumes:
+      - codepush-mysql-data:/var/lib/mysql
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+      MYSQL_DATABASE: codepush
+    command: --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root --silent || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    expose:
+      - "3306"
+    networks: [codepush]
+
+  codepush-redis:
+    image: redis:7-alpine
+    container_name: hyperpush-codepush-redis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    expose:
+      - "6379"
+    networks: [codepush]
+
+networks:
+  codepush:
+    driver: bridge
+
+volumes:
+  caddy_data:
+  caddy_config:
+  prisma_client:
+  pgdata:
+  codepush-mysql-data:
+  codepush-storage:
+  codepush-tmp:

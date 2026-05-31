@@ -1,9 +1,8 @@
-import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException, NotFoundException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { RegisterInput } from '@/auth/dto';
-import { LoginInput } from '@/auth/dto';
+import { RegisterInput, LoginInput, UpdateUserInput } from '@/auth/dto';
 
 @Injectable()
 export class AuthService {
@@ -48,6 +47,22 @@ export class AuthService {
       accessToken: this.generateToken(user),
       user: this.sanitizeUser(user),
     };
+  }
+
+  async updateUser(input: UpdateUserInput) {
+    const user = await this.prisma.user.findUnique({ where: { id: input.id } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const updated = await this.prisma.user.update({
+      where: { id: input.id },
+      data: {
+        ...(input.name !== undefined ? { name: input.name } : {}),
+      },
+    });
+
+    return this.sanitizeUser(updated);
   }
 
   async getMe(userId: string) {

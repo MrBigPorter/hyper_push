@@ -1,0 +1,86 @@
+# ==========================================
+# HyperPush — 🚀  Master Deployment Control
+# ==========================================
+# 主编排器：根据输入决定部署到 VPS 和/或 AWS
+#
+# 参考 JoyMini 的 deploy-master.yml 模式:
+#   - workflow_dispatch 带开关选项
+#   - 调用子 workflow (deploy-vps.yml, deploy-aws.yml)
+# ==========================================
+
+name: 🚀 Master Deployment Control
+
+run-name: >-
+  Master Deploy · ${{ github.ref_name }} ·
+  VPS=${{ inputs.deploy_vps }} AWS=${{ inputs.deploy_aws }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      runner:
+        description: "🖥️ Runner"
+        type: choice
+        options: [ubuntu-latest, self-hosted]
+        default: ubuntu-latest
+      deploy_vps:
+        description: "🖥️ Deploy to VPS (Docker Compose)"
+        type: boolean
+        default: true
+      deploy_aws:
+        description: "☁️ Deploy to AWS (ECS Fargate)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  packages: write   # GHCR
+  id-token: write   # AWS OIDC
+
+concurrency:
+  group: deploy-master-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # =========================================
+  # Job 0: Preflight — 打印部署意图
+  # =========================================
+  preflight:
+    name: 🧭 Preflight Summary
+    runs-on: ${{ inputs.runner }}
+    steps:
+      - name: Write dispatch summary
+        run: |
+          {
+            echo "## 🚀 HyperPush Master Deploy Dispatch"
+            echo ""
+            echo "- Branch: \`${{ github.ref_name }}\`"
+            echo "- Commit: \`${{ github.sha }}\`"
+            echo "- Runner: \`${{ inputs.runner }}\`"
+            echo "- Deploy VPS: \`${{ inputs.deploy_vps }}\`"
+            echo "- Deploy AWS: \`${{ inputs.deploy_aws }}\`"
+            echo "- Triggered by: \`${{ github.actor }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # =========================================
+  # Job 1: VPS Deployment
+  # =========================================
+  run-vps-deploy:
+    name: 🖥️ Trigger VPS Deploy
+    needs: preflight
+    if: ${{ inputs.deploy_vps == true }}
+    uses: ./.github/workflows/deploy-vps.yml
+    with:
+      runner: ${{ inputs.runner }}
+    secrets: inherit
+
+  # =========================================
+  # Job 2: AWS Deployment
+  # =========================================
+  run-aws-deploy:
+    name: ☁️ Trigger AWS Deploy
+    needs: preflight
+    if: ${{ inputs.deploy_aws == true }}
+    uses: ./.github/workflows/deploy-aws.yml
+    with:
+      runner: ${{ inputs.runner }}
+    secrets: inherit

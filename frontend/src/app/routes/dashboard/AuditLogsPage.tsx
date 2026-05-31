@@ -4,14 +4,17 @@
 
 import { useState } from 'react';
 import { useQuery } from '@apollo/client/react';
-import { Card, CardHeader } from '@app/components/ui';
-import { ScrollText, Filter } from 'lucide-react';
+import { Card, CardHeader, Button } from '@app/components/ui';
+import { ScrollText, ChevronLeft, ChevronRight } from 'lucide-react';
 import { GET_AUDIT_LOGS } from '@app/lib/graphql';
 import { Badge } from '@/components/ui/badge';
 import type { AuditLog } from '@app/types/models';
 import type { AuditLogsResponseData } from '@app/types/graphql';
 
+const PAGE_SIZE = 50;
+
 export function AuditLogsPage() {
+  const [page, setPage] = useState(1);
   const [entityFilter, setEntityFilter] = useState<string | undefined>();
   const [actionFilter, setActionFilter] = useState<string | undefined>();
 
@@ -20,8 +23,8 @@ export function AuditLogsPage() {
       filter: {
         entity: entityFilter || undefined,
         action: actionFilter || undefined,
-        page: 1,
-        pageSize: 50,
+        page,
+        pageSize: PAGE_SIZE,
       },
     },
   });
@@ -29,6 +32,16 @@ export function AuditLogsPage() {
   const typedData = data as AuditLogsResponseData | undefined;
   const auditLogs: AuditLog[] = typedData?.getAuditLogs?.items ?? [];
   const pagination = typedData?.getAuditLogs?.pagination;
+
+  const handleEntityFilterChange = (value: string) => {
+    setEntityFilter(value || undefined);
+    setPage(1);
+  };
+
+  const handleActionFilterChange = (value: string) => {
+    setActionFilter(value || undefined);
+    setPage(1);
+  };
 
   const actionColors: Record<string, string> = {
     create: 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400',
@@ -48,7 +61,7 @@ export function AuditLogsPage() {
           <div className="flex items-center gap-2">
             <select
               value={entityFilter ?? ''}
-              onChange={(e) => setEntityFilter(e.target.value || undefined)}
+              onChange={(e) => handleEntityFilterChange(e.target.value)}
               className="rounded-lg border border-gray-300 px-2 py-1 text-xs dark:border-gray-600 dark:bg-dark-800 dark:text-gray-100"
             >
               <option value="">All Entities</option>
@@ -61,7 +74,7 @@ export function AuditLogsPage() {
             </select>
             <select
               value={actionFilter ?? ''}
-              onChange={(e) => setActionFilter(e.target.value || undefined)}
+              onChange={(e) => handleActionFilterChange(e.target.value)}
               className="rounded-lg border border-gray-300 px-2 py-1 text-xs dark:border-gray-600 dark:bg-dark-800 dark:text-gray-100"
             >
               <option value="">All Actions</option>
@@ -126,12 +139,32 @@ export function AuditLogsPage() {
         {pagination && pagination.totalPages > 1 && (
           <div className="flex items-center justify-between border-t border-gray-200 px-6 py-3 dark:border-dark-700">
             <p className="text-xs text-gray-500">
-              Showing {auditLogs.length} of {pagination.total} entries
+              Showing {(pagination.page - 1) * pagination.pageSize + 1}–
+              {Math.min(pagination.page * pagination.pageSize, pagination.total)} of{' '}
+              {pagination.total} entries
             </p>
             <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-500">
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={pagination.page <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Previous
+              </Button>
+              <span className="px-2 text-xs text-gray-500">
                 Page {pagination.page} of {pagination.totalPages}
               </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={pagination.page >= pagination.totalPages}
+                onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
+              >
+                Next
+                <ChevronRight className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         )}

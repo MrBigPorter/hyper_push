@@ -34,6 +34,19 @@ export const REGISTER_MUTATION = gql`
   }
 `;
 
+export const UPDATE_USER_MUTATION = gql`
+  mutation updateUser($input: UpdateUserInput!) {
+    updateUser(input: $input) {
+      id
+      email
+      name
+      role
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
 export const ME_QUERY = gql`
   query me {
     me {
@@ -54,7 +67,6 @@ export const GET_SERVERS = gql`
     getServers {
       id
       name
-      baseUrl
       username
       apiKey
       isOnline
@@ -70,7 +82,6 @@ export const GET_SERVER = gql`
     server(id: $id) {
       id
       name
-      baseUrl
       username
       apiKey
       isOnline
@@ -86,7 +97,6 @@ export const CREATE_SERVER = gql`
     createServer(input: $input) {
       id
       name
-      baseUrl
       username
       apiKey
       isOnline
@@ -102,7 +112,6 @@ export const UPDATE_SERVER = gql`
     updateServer(input: $input) {
       id
       name
-      baseUrl
       username
       apiKey
       isOnline
