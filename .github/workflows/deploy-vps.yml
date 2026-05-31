@@ -453,17 +453,15 @@ jobs:
             echo "========================================"
             HEALTHY=false
             for i in $(seq 1 30); do
-              HTTP_CODE=$(curl -so /dev/null -w "%{http_code}" \
-                --max-time 5 \
-                --post-data '{"query":"{_health}"}' \
-                --header 'Content-Type: application/json' \
-                http://localhost:3000/graphql 2>/dev/null || echo "000")
-              if [ "$HTTP_CODE" = "200" ]; then
+              if docker exec hyperpush-app wget -qO- \
+                --post-data='{"query":"{_health}"}' \
+                --header='Content-Type: application/json' \
+                http://localhost:3000/graphql >/dev/null 2>&1; then
                 echo " ✅ Health check passed (attempt $i, ~$((i*3))s)"
                 HEALTHY=true
                 break
               fi
-              echo " Attempt $i/30 (HTTP $HTTP_CODE)..."
+              echo " Attempt $i/30..."
               sleep 3
             done
 
