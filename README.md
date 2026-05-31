@@ -19,7 +19,7 @@
 [![AWS](https://img.shields.io/badge/AWS_CDK-FF9900?logo=amazonaws)](https://aws.amazon.com/cdk/)
 [![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-2088FF?logo=githubactions)](https://github.com/features/actions)
 [![Bun](https://img.shields.io/badge/Bun-1.3-000000?logo=bun)](https://bun.sh/)
-[![Caddy](https://img.shields.io/badge/Caddy_2-1F6FEB?logo=caddy)](https://caddyserver.com/)
+[![Nginx](https://img.shields.io/badge/Nginx-009639?logo=nginx)](https://nginx.org/)
 
 </div>
 
@@ -59,7 +59,7 @@ HyperPush wraps one or more code-push-server instances behind a **modern BFF (Ba
 - **Three-layer state management** — Redux Toolkit (UI/auth) + Apollo Client (GraphQL cache) + TanStack Query (server state) with clear separation of concerns
 - **Dual deployment target** — Same codebase deploys to VPS (Docker Compose) AND AWS ECS (CDK) via separate workflows
 - **Multi-stage Docker builds** — Frontend: 5 stages (base → deps → dev → build → production/Nginx), Backend: 3 stages (builder → development → production)
-- **Caddy 2 reverse proxy** — Zero-config auto HTTPS via Let's Encrypt, proxying to 4 internal services
+- **Nginx reverse proxy** — Container-based reverse proxy with hot reload, proxying to 4 internal services
 
 ---
 
@@ -297,41 +297,50 @@ CMD ["nginx", "-g", "daemon off;"]
 
 ---
 
-### 7. Caddy 2 Reverse Proxy — Zero-Config Auto HTTPS
+### 7. Nginx Reverse Proxy — Container-Based with Hot Reload
 
-**Problem:** The production stack serves 4 services (frontend SPA, backend GraphQL API, code-push-server REST API, and static assets). Each needs HTTPS with Let's Encrypt, and code-push-server needs WebSocket/long-polling support. Traditional Nginx configuration for this is error-prone and requires manual certificate renewal.
+**Problem:** The production stack serves 4 services (frontend SPA, backend GraphQL API, code-push-server REST API, and static assets). Each needs proper routing, static asset caching, and large upload support. Caddy 2 was initially used but its auto-https (Let's Encrypt) caused reliability issues.
 
-**Solution:** Caddy 2 with automatic TLS provisioning, configured in a single file:
+**Solution:** Nginx (`nginx:alpine`) running inside Docker, configured via a single mounted config file. Config is hot-reloaded via `docker exec nginx -t && docker exec nginx -s reload` — following the same pattern as [JoyMini's production deployment](https://github.com/Porter-Sz/JoyMini_Nest_Monorepo).
 
-```caddyfile
-codepush.hyperpush.dev {
-    reverse_proxy hyperpush-codepush-prod:3000
-}
+```nginx
+# Console domain — admin UI + GraphQL API
+server {
+    listen 80;
+    server_name console.hyperpush.org;
 
-console.hyperpush.dev {
-    reverse_proxy hyperpush-frontend-prod:80
-
-    @api path /graphql /api/*
-    handle @api {
-        reverse_proxy hyperpush-app-prod:3000
+    location /graphql {
+        proxy_pass http://hyperpush-app:3000;
     }
 
-    handle {
-        root * /usr/share/nginx/html
-        try_files {path} /index.html
-        file_server
+    location / {
+        proxy_pass http://hyperpush-frontend:80;
+    }
+}
+
+# CodePush domain — code-push-server
+server {
+    listen 80;
+    server_name cp.hyperpush.org;
+    client_max_body_size 500M;
+
+    location / {
+        proxy_pass http://hyperpush-codepush-prod:3000;
     }
 }
 ```
 
 **Key details:**
 
-- **Two domains, one Caddy instance** — `console.*` for the admin UI + GraphQL, `codepush.*` for the CodePush server
-- **Path-based routing** — `/graphql` and `/api/*` go to the backend, everything else goes to the SPA
-- **Zero config for Let's Encrypt** — Caddy auto-provisions and renews certificates, no `certbot` needed
-- **No exposed DB ports** — All database communication happens within the Docker internal network
+- **Two server blocks, one Nginx container** — `console.*` for the admin UI + GraphQL, `cp.*` for the CodePush server
+- **Path-based routing** — `/graphql` and `/api/*` go to the backend, everything else goes to the frontend SPA
+- **Docker DNS resolver** — `resolver 127.0.0.11 valid=10s` prevents 502 errors after container recreation
+- **Hot reload** — Config synced via `appleboy/scp-action`, then reloaded with `nginx -s reload` (no restart)
+- **Large uploads** — `client_max_body_size 500M` for CodePush release file uploads
+- **Static asset caching** — Frontend assets (JS/CSS/images) cached with `expires 30d`
+- **No TLS yet** — Initially HTTP-only; HTTPS can be added later by mounting certs volume
 
-**Files:** [`Caddyfile`](deploy/Caddyfile) · [`compose.prod.yml`](deploy/compose.prod.yml)
+**Files:** [`nginx-hyperpush.conf`](deploy/nginx-hyperpush.conf) · [`compose.prod.yml`](deploy/compose.prod.yml)
 
 ---
 
@@ -344,7 +353,7 @@ graph TB
         CPClient["React Native Client<br/>code-push SDK"]
     end
 
-    subgraph Caddy["Caddy 2 Reverse Proxy"]
+    subgraph Nginx["Nginx Reverse Proxy"]
         CP["codepush.hyperpush.dev<br/>→ code-push-server:3000"]
         Console["console.hyperpush.dev<br/>/ → Frontend SPA<br/>/graphql → Backend API"]
     end
@@ -380,7 +389,7 @@ graph TB
 | **Backend** | NestJS 11, Apollo Server 5 (code-first), Passport.js (JWT), bcrypt |
 | **Database** | Prisma 7 ORM, SQLite (dev), PostgreSQL 16 (prod), MySQL 8.0 (code-push-server) |
 | **Cache** | Redis 7 (code-push-server storage) |
-| **Infrastructure** | Docker, Docker Compose, Caddy 2 (reverse proxy + auto TLS) |
+| **Infrastructure** | Docker, Docker Compose, Nginx (reverse proxy) |
 | **CI/CD** | GitHub Actions, AWS CDK (TypeScript), GHCR (container registry) |
 | **Code Quality** | Biome (linter + formatter), tsconfig strict mode |
 | **Auth** | JWT (access tokens), bcrypt password hashing, Passport GQL guard |
@@ -432,7 +441,7 @@ hyperpush/
 │   └── Dockerfile                    # 5-stage: base → deps → dev → build → production (Nginx)
 │
 ├── deploy/                           # Production deployment files
-│   ├── Caddyfile                     # Caddy 2 reverse proxy config
+│   ├── nginx-hyperpush.conf          # Nginx reverse proxy config
 │   └── compose.prod.yml              # Production Docker Compose
 │
 ├── infra/                            # AWS CDK infrastructure (TypeScript)
@@ -590,7 +599,7 @@ graph LR
 | **Dual CI/CD** | "The same codebase deploys to two targets: VPS Docker Compose for cost efficiency and rapid iteration, and AWS ECS via CDK for production scalability. Both use the same Docker images from GHCR, so images are built once and deployed to both targets." |
 | **Multi-stage Docker** | "The frontend Dockerfile has 5 stages with strategic COPY ordering — `package.json` first (rarely changes → cached), then source code. This cuts CI build times from ~2min to ~30s. Production stage uses `nginx:1.27-alpine` (~23MB) instead of the full Node.js image." |
 | **Database Flexibility** | "Local dev uses SQLite via Prisma's `adapter-pg` compatibility layer — no PostgreSQL installation needed. Production uses PostgreSQL. The Prisma schema is the single source of truth, and migrations auto-run on startup in the backend's `bootstrap` hook." |
-| **Caddy Auto TLS** | "Caddy 2 provisions and renews Let's Encrypt certificates automatically with zero configuration. One Caddyfile routes two domains (console + codepush) to the right internal services with path-based routing." |
+| **Nginx Reverse Proxy** | "Nginx runs in a Docker container with hot-reloadable config. One config file routes two domains (console + codepush) to the right internal services with path-based routing, static caching, and large upload support." |
 | **Audit Logging** | "Every CodePush operation (release, deployment change, app creation) is logged with user ID, timestamp, and action details. The audit log is queryable via GraphQL with filtering and pagination." |
 | **Project Ownership** | "I designed the architecture, implemented the full-stack code, containerized everything, set up CI/CD for both VPS and AWS, and wrote all documentation. This is a solo project from start to finish." |
 
@@ -607,7 +616,7 @@ As the **sole developer and architect** of this project, I:
 - 📊 **Created** the audit logging system — full CRUD audit trail for all CodePush operations
 - 🐳 **Containerized** the entire stack — 5-stage frontend Docker build, 3-stage backend, Docker Compose orchestration
 - 🚀 **Designed** dual CI/CD pipelines — VPS (Docker Compose with native SSH) + AWS (ECS Fargate via CDK)
-- ☁️ **Set up** Caddy 2 reverse proxy — zero-config auto HTTPS with Let's Encrypt
+- ☁️ **Set up** Nginx reverse proxy — container-based with hot reload, Docker DNS resolver
 - 📝 **Wrote** comprehensive documentation — deployment guide, development guide, architecture analysis
 
 ---
@@ -620,6 +629,6 @@ This project is private and not licensed for public use.
 
 <div align="center">
 
-**Built with** ❤️ **using** React · NestJS · GraphQL · Prisma · Docker · Caddy
+**Built with** ❤️ **using** React · NestJS · GraphQL · Prisma · Docker · Nginx
 
 </div>

@@ -2,7 +2,7 @@
 # HyperPush — Production Docker Compose
 # ==========================================
 # 使用方法:
-#   docker compose -f compose.yml -f deploy/compose.prod.yml up -d --build
+#   docker compose -f compose.yml -f deploy/compose.prod.yml up -d
 #
 # 前置条件:
 #   1. 购买域名并解析 A 记录到服务器 IP
@@ -17,19 +17,18 @@
 
 services:
   # =========================================
-  # Caddy — 反向代理 + 自动 TLS
+  # Nginx — 反向代理 (替代 Caddy)
   # =========================================
-  caddy:
-    image: caddy:2-alpine
-    container_name: hyperpush-caddy
+  nginx:
+    image: nginx:alpine
+    container_name: hyperpush-nginx
     restart: unless-stopped
     ports:
       - "80:80"
       - "443:443"
     volumes:
-      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
+      - ./deploy/nginx-hyperpush.conf:/etc/nginx/conf.d/default.conf:ro
+      - nginx_cache:/var/cache/nginx
     depends_on:
       app:
         condition: service_healthy
@@ -50,8 +49,6 @@ services:
     image: hyperpush:latest
     container_name: hyperpush-app
     restart: unless-stopped
-    ports:
-      - "3000:3000"
     expose:
       - "3000"
     env_file:
@@ -210,8 +207,7 @@ networks:
     driver: bridge
 
 volumes:
-  caddy_data:
-  caddy_config:
+  nginx_cache:
   prisma_client:
   pgdata:
   codepush-mysql-data:
