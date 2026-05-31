@@ -119,7 +119,7 @@ export function CodePushPage() {
               >
                 Server
               </label>
-              <Select value={createServerId} onValueChange={setCreateServerId}>
+              <Select value={createServerId} onValueChange={(val) => setCreateServerId(val ?? '')}>
                 <SelectTrigger id="create-app-server">
                   <SelectValue placeholder="Select a server" />
                 </SelectTrigger>
@@ -181,7 +181,7 @@ export function CodePushPage() {
               >
                 Platform
               </label>
-              <Select value={createPlatform} onValueChange={setCreatePlatform}>
+              <Select value={createPlatform} onValueChange={(val) => setCreatePlatform(val ?? '')}>
                 <SelectTrigger id="create-app-platform">
                   <SelectValue />
                 </SelectTrigger>
@@ -265,7 +265,7 @@ export function CodePushPage() {
                     {server.name}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                    {server.baseUrl}
+                    {server.username}
                   </p>
                 </div>
                 <Badge variant={server.isOnline ? 'default' : 'secondary'}>

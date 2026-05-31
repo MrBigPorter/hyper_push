@@ -1,6 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 
+/** Internal Docker network address for the codepush service */
+const CODEPUSH_BASE_URL = 'http://hyperpush-codepush-prod:3000';
+
 /**
  * Response shape from lisong/code-push-server v5.7.1 endpoints.
  * Many endpoints return plain text strings on error; this handles both.
@@ -17,7 +20,7 @@ export class CodepushService {
 
   // ── Auth helpers ───────────────────────────────────────────────────────
 
-  /** Look up a server by ID and return its baseUrl + stored JWT token */
+  /** Look up a server by ID and return its CODEPUSH_BASE_URL + stored JWT token */
   private async getServerAuth(
     serverId: string,
   ): Promise<{ baseUrl: string; token: string }> {
@@ -27,7 +30,7 @@ export class CodepushService {
     if (!server) {
       throw new NotFoundException(`Server ${serverId} not found`);
     }
-    return { baseUrl: server.baseUrl.replace(/\/+$/, ''), token: server.apiKey };
+    return { baseUrl: CODEPUSH_BASE_URL.replace(/\/+$/, ''), token: server.apiKey };
   }
 
   /**
