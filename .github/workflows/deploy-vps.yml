@@ -414,6 +414,10 @@ jobs:
             retry 4 10 docker pull "$IMAGE_APP"
             retry 4 10 docker pull "$IMAGE_FRONTEND"
 
+            # Retag GHCR images to match compose.yml image names
+            docker tag "$IMAGE_APP" hyperpush:latest
+            docker tag "$IMAGE_FRONTEND" hyperpush-frontend:latest
+
             echo "========================================"
             echo " 5/8 — Run DB migration..."
             echo "========================================"
@@ -430,7 +434,7 @@ jobs:
             echo "========================================"
             echo " 6/8 — Restart containers..."
             echo "========================================"
-            docker compose -f compose.yml -f deploy/compose.prod.yml up -d --build
+            docker compose -f compose.yml -f deploy/compose.prod.yml up -d
 
             echo "========================================"
             echo " 7/8 — Health check (max 90s)..."
