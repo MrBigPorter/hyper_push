@@ -166,7 +166,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy --project-name=hyperpush
+          command: pages deploy dist/app --project-name=hyperpush
           workingDirectory: frontend
           packageManager: npm
 
