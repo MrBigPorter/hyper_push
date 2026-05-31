@@ -434,6 +434,8 @@ jobs:
             echo "========================================"
             echo " 6/8 — Restart containers..."
             echo "========================================"
+            # Stop old Caddy first to avoid "port is already allocated"
+            docker rm -f hyperpush-caddy 2>/dev/null || true
             docker compose -f compose.yml -f deploy/compose.prod.yml up -d
 
             echo "========================================"
