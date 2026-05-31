@@ -434,6 +434,7 @@ jobs:
             TOKEN_SECRET=${{ secrets.TOKEN_SECRET }}
             DATABASE_URL=${{ secrets.DATABASE_URL || 'postgresql://hyperpush:hyperpush123@db:5432/hyperpush' }}
             PUBLIC_URL=https://${{ secrets.CODEPUSH_DOMAIN }}
+            CORS_ORIGINS=https://app.hyperpush.org
             ENVEOF
 
             echo "========================================"
