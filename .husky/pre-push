@@ -1,0 +1,10 @@
+# 🚀 Pre-push hook — Build + DI validation
+# Runs before every push to ensure the app compiles and DI resolves.
+
+cd backend
+
+echo "🏗️ Building..."
+npm run build
+
+echo "🔍 Validating DI graph..."
+npm run validate:di

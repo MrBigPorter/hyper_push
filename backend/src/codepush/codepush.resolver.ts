@@ -9,7 +9,7 @@ import type {
   UpdateDeploymentInput,
   UpdateReleaseInput,
 } from '@/codepush/dto';
-import type { CodepushService } from './codepush.service.js';
+import { CodepushService } from './codepush.service.js';
 
 @Resolver()
 export class CodepushResolver {

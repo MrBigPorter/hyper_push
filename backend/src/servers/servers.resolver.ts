@@ -3,7 +3,7 @@ import { Args, Context, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { GqlAuthGuard } from '@/auth/guards/gql-auth.guard.js';
 import { CreateServerInput, UpdateServerInput } from '@/servers/dto';
 import { ServerModel } from './models/server.model.js';
-import type { ServersService } from './servers.service.js';
+import { ServersService } from './servers.service.js';
 
 @Resolver(() => ServerModel)
 @UseGuards(GqlAuthGuard)

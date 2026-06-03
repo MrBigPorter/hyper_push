@@ -11,14 +11,18 @@
     "lint:fix": "biome check --write .",
     "format": "biome format --write .",
     "check-types": "tsc --noEmit",
+    "check:imports": "! grep -rn 'import type' src/ | grep -E '(Service|Strategy|Jwt|Prisma)' | grep -qv 'dto\\|input\\|model\\|scalar\\|OnModule' || (echo '❌ import type used for a DI class — use \"import\" instead of \"import type\" for injectable classes'; exit 1)",
+    "validate:di": "bun scripts/validate-di.mts",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "prepare": "husky"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.15",
     "@nestjs/cli": "^11.0.21",
+    "@nestjs/testing": "^11.1.24",
     "@swc/cli": "^0.8.1",
     "@swc/core": "^1.15.40",
     "@types/bcryptjs": "^3.0.0",
@@ -26,7 +30,8 @@
     "@types/multer": "^2.1.0",
     "@types/nodemailer": "^8.0.0",
     "@types/passport-jwt": "^4.0.1",
-    "@types/pg": "^8.20.0"
+    "@types/pg": "^8.20.0",
+    "husky": "^9.1.7"
   },
   "peerDependencies": {
     "typescript": "^5"

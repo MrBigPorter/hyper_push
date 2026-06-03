@@ -2,7 +2,7 @@ import { UseGuards } from '@nestjs/common';
 import { Args, Context, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { AuditLogFilterInput } from '@/audit-log/dto';
 import { GqlAuthGuard } from '@/auth/guards/gql-auth.guard.js';
-import type { AuditLogService } from './audit-log.service.js';
+import { AuditLogService } from './audit-log.service.js';
 import { AuditLogModel } from './models/audit-log.model.js';
 import { AuditLogListResponseModel } from './models/audit-log-list.response.js';
 

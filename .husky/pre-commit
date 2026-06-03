@@ -1,0 +1,13 @@
+# 🚀 Pre-commit hook — Stage checks
+# Runs static analysis before every commit.
+
+cd backend
+
+echo "🔍 Checking import type usage..."
+npm run check:imports
+
+echo "🔍 Checking TypeScript types..."
+npm run check-types
+
+echo "🔍 Linting..."
+npm run lint

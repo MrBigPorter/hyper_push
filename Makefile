@@ -49,6 +49,17 @@ prod-ps:
 	docker compose ps
 
 # ─────────────────────────────────────────
+# 验证
+# ─────────────────────────────────────────
+
+# 本地 smoke test: build + docker compose up + healthcheck
+# 模拟 CI/CD 的部署验证流程，确保 app 能正常启动
+smoke-test:
+	docker compose up -d --wait app
+	@echo "✅ App started and healthy"
+	docker compose down
+
+# ─────────────────────────────────────────
 # 其他
 # ─────────────────────────────────────────
 

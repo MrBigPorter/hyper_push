@@ -8,7 +8,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import type { CodepushService } from './codepush.service.js';
+import { CodepushService } from './codepush.service.js';
 
 /**
  * Minimal Multer file interface (avoids dependency on Express type augmentation).

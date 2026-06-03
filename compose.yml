@@ -58,12 +58,12 @@ services:
       - .env
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgresql://hyperpush:hyperpush123@db:5432/hyperpush}
-      NODE_ENV: development
+      NODE_ENV: production
     depends_on:
       db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- --post-data='{\"query\":\"{_health}\"}' --header='Content-Type: application/json' http://localhost:3002/graphql >/dev/null 2>&1 || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- --post-data='{\"query\":\"{_health}\"}' --header='Content-Type: application/json' http://localhost:3000/graphql >/dev/null 2>&1 || exit 1"]
       interval: 15s
       timeout: 3s
       retries: 5

@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import type { CreateServerInput, UpdateServerInput } from '@/servers/dto';
-import type { PrismaService } from '../prisma/prisma.service.js';
+import { PrismaService } from '../prisma/prisma.service.js';
 
 /** Internal Docker network address for the codepush service */
 const CODEPUSH_BASE_URL = 'http://hyperpush-codepush-prod:3000';
