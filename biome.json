@@ -7,6 +7,9 @@
       "correctness": {
         "noUnusedVariables": "warn",
         "noUnusedImports": "warn"
+      },
+      "style": {
+        "useImportType": "off"
       }
     }
   },
