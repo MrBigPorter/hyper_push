@@ -11,7 +11,7 @@
     "lint:fix": "biome check --write .",
     "format": "biome format --write .",
     "check-types": "tsc --noEmit",
-    "check:imports": "! grep -rn 'import type' src/ --include='*.ts' | grep -E '(Service|Strategy|Jwt|Prisma|Input|Dto|Model)' | grep -vE '^[^:]+/dto/|^[^:]+/models/|scalar|OnModule|ExecutionContext|Response' || (echo '❌ import type used for a runtime-required class — use \"import\" instead of \"import type\"'; exit 1)",
+    "check:imports": "s=$(grep -rn 'import type' src/ --include='*.ts' | grep -E '(Service|Strategy|Jwt|Prisma)' | grep -vE 'scalar|OnModule|ExecutionContext|Response') && { echo \"$s\"; echo '❌ import type used for DI class — use \"import\" instead'; exit 1; }; s=$(grep -rn 'import type' src/ --include='*.resolver.ts' | grep -E '(Input|Dto|Model)' | grep -vE '^[^:]+/dto/|^[^:]+/models/') && { echo \"$s\"; echo '❌ import type used for GraphQL DTO in resolver — use \"import\" instead'; exit 1; }; echo '✅ All imports correct'",
     "validate:di": "bun scripts/validate-di.mts",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
