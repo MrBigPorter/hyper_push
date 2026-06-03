@@ -70,7 +70,6 @@ input CreateDeploymentInput {
 }
 
 input CreateServerInput {
-  baseUrl: String!
   name: String!
   password: String!
   username: String!
@@ -117,6 +116,7 @@ type Mutation {
   updateCodepushDeployment(input: UpdateDeploymentInput!): JSON!
   updateCodepushRelease(input: UpdateReleaseInput!): JSON!
   updateServer(input: UpdateServerInput!): Server!
+  updateUser(input: UpdateUserInput!): User!
 }
 
 type PaginationInfo {
@@ -162,7 +162,6 @@ input RegisterInput {
 
 type Server {
   apiKey: String!
-  baseUrl: String!
   createdAt: DateTime!
   id: ID!
   isOnline: Boolean!
@@ -199,11 +198,15 @@ input UpdateReleaseInput {
 
 input UpdateServerInput {
   apiKey: String
-  baseUrl: String
   id: String!
   name: String
   password: String
   username: String
+}
+
+input UpdateUserInput {
+  id: String!
+  name: String
 }
 
 type User {
