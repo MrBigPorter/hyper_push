@@ -11,7 +11,7 @@
     "lint:fix": "biome check --write .",
     "format": "biome format --write .",
     "check-types": "tsc --noEmit",
-    "check:imports": "! grep -rn 'import type' src/ | grep -E '(Service|Strategy|Jwt|Prisma)' | grep -qv 'dto\\|input\\|model\\|scalar\\|OnModule' || (echo '❌ import type used for a DI class — use \"import\" instead of \"import type\" for injectable classes'; exit 1)",
+    "check:imports": "! grep -rn 'import type' src/ --include='*.ts' | grep -E '(Service|Strategy|Jwt|Prisma|Input|Dto|Model)' | grep -vE '^[^:]+/dto/|^[^:]+/models/|scalar|OnModule|ExecutionContext|Response' || (echo '❌ import type used for a runtime-required class — use \"import\" instead of \"import type\"'; exit 1)",
     "validate:di": "bun scripts/validate-di.mts",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",

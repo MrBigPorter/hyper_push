@@ -1,6 +1,6 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { GraphQLJSON } from 'graphql-type-json';
-import type {
+import {
   CreateAccessKeyInput,
   CreateAppInput,
   CreateDeploymentInput,
