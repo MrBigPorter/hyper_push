@@ -2,8 +2,8 @@
 // HyperPush — Card Component
 // ==========================================
 
-import type { HTMLAttributes, ReactNode } from 'react';
 import clsx from 'clsx';
+import type { HTMLAttributes, ReactNode } from 'react';
 
 export interface CardProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode;
@@ -17,12 +17,7 @@ const paddingStyles = {
   lg: 'p-6',
 };
 
-export function Card({
-  children,
-  padding = 'md',
-  className,
-  ...props
-}: CardProps) {
+export function Card({ children, padding = 'md', className, ...props }: CardProps) {
   return (
     <div
       className={clsx(
@@ -57,13 +52,9 @@ export function CardHeader({
       )}
     >
       <div>
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-          {title}
-        </h2>
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{title}</h2>
         {description && (
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            {description}
-          </p>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{description}</p>
         )}
       </div>
       {action && <div>{action}</div>}

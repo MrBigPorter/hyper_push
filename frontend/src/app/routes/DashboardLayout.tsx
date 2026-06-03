@@ -2,11 +2,11 @@
 // HyperPush — Dashboard Layout (with Sidebar + Header)
 // ==========================================
 
-import { useEffect } from 'react';
-import { Outlet, useNavigate } from '@tanstack/react-router';
-import { useAppSelector } from '@app/hooks';
-import { Sidebar } from '@app/components/Sidebar';
 import { Header } from '@app/components/Header';
+import { Sidebar } from '@app/components/Sidebar';
+import { useAppSelector } from '@app/hooks';
+import { Outlet, useNavigate } from '@tanstack/react-router';
+import { useEffect } from 'react';
 
 export function DashboardLayout() {
   const navigate = useNavigate();

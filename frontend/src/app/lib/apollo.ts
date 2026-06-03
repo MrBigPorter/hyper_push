@@ -2,7 +2,7 @@
 // HyperPush — Apollo Client Setup
 // ==========================================
 
-import { ApolloClient, InMemoryCache, HttpLink, ApolloLink } from '@apollo/client';
+import { ApolloClient, ApolloLink, HttpLink, InMemoryCache } from '@apollo/client';
 
 const AUTH_TOKEN_KEY = 'hyperpush_token';
 

@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 import { MulterModule } from '@nestjs/platform-express';
-import { CodepushService } from './codepush.service.js';
-import { CodepushResolver } from './codepush.resolver.js';
 import { CodepushController } from './codepush.controller.js';
+import { CodepushResolver } from './codepush.resolver.js';
+import { CodepushService } from './codepush.service.js';
 
 @Module({
   imports: [

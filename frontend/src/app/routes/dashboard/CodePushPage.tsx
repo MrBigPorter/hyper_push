@@ -2,11 +2,15 @@
 // HyperPush — CodePush Management Page
 // ==========================================
 
-import { useState } from 'react';
-import { useNavigate } from '@tanstack/react-router';
 import { useMutation, useQuery } from '@apollo/client/react';
-import { Card, CardHeader, Button } from '@app/components/ui';
-import { Plus, Smartphone, Server } from 'lucide-react';
+import { Button, Card, CardHeader } from '@app/components/ui';
+import { CREATE_CODEPUSH_APP, GET_SERVERS } from '@app/lib/graphql';
+import type { ServersResponseData } from '@app/types/graphql';
+import type { Server as ServerModel } from '@app/types/models';
+import { useNavigate } from '@tanstack/react-router';
+import { Plus, Server, Smartphone } from 'lucide-react';
+import { useState } from 'react';
+import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
   DialogContent,
@@ -14,7 +18,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import {
   Select,
@@ -23,13 +26,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { GET_SERVERS, CREATE_CODEPUSH_APP } from '@app/lib/graphql';
-import type { Server as ServerModel } from '@app/types/models';
-import type { ServersResponseData } from '@app/types/graphql';
 
 const OS_OPTIONS = ['iOS', 'Android'] as const;
-const PLATFORM_OPTIONS = ['React Native', 'Cordova', 'Unity', 'Flutter', 'Xamarin', 'Other'] as const;
+const PLATFORM_OPTIONS = [
+  'React Native',
+  'Cordova',
+  'Unity',
+  'Flutter',
+  'Xamarin',
+  'Other',
+] as const;
 
 export function CodePushPage() {
   const navigate = useNavigate();
@@ -105,9 +111,7 @@ export function CodePushPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Create CodePush App</DialogTitle>
-            <DialogDescription>
-              Create a new app on the selected CodePush server.
-            </DialogDescription>
+            <DialogDescription>Create a new app on the selected CodePush server.</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-2">
@@ -152,9 +156,9 @@ export function CodePushPage() {
 
             {/* OS Selection */}
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <span className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 OS
-              </label>
+              </span>
               <div className="flex gap-2">
                 {OS_OPTIONS.map((os) => (
                   <button
@@ -195,9 +199,7 @@ export function CodePushPage() {
               </Select>
             </div>
 
-            {createError && (
-              <p className="text-sm text-red-500">{createError}</p>
-            )}
+            {createError && <p className="text-sm text-red-500">{createError}</p>}
           </div>
 
           <DialogFooter>
@@ -224,17 +226,13 @@ export function CodePushPage() {
         </Card>
       ) : error ? (
         <Card padding="lg">
-          <p className="text-center text-red-500">
-            Failed to load servers: {error.message}
-          </p>
+          <p className="text-center text-red-500">Failed to load servers: {error.message}</p>
         </Card>
       ) : servers.length === 0 ? (
         <Card padding="lg">
           <div className="py-12 text-center">
             <Server className="mx-auto h-12 w-12 text-gray-300 dark:text-gray-600" />
-            <p className="mt-4 text-gray-400 dark:text-gray-500">
-              No CodePush servers connected
-            </p>
+            <p className="mt-4 text-gray-400 dark:text-gray-500">No CodePush servers connected</p>
             <p className="mt-1 text-sm text-gray-400 dark:text-gray-500">
               Add a server first in the Servers page.
             </p>
@@ -254,7 +252,9 @@ export function CodePushPage() {
               key={server.id}
               padding="lg"
               className="cursor-pointer hover:shadow-md transition-shadow"
-              onClick={() => navigate({ to: '/dashboard/codepush/$appId', params: { appId: server.id } })}
+              onClick={() =>
+                navigate({ to: '/dashboard/codepush/$appId', params: { appId: server.id } })
+              }
             >
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-100 dark:bg-primary-900/20">

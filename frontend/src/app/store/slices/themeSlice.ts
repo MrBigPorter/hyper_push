@@ -4,8 +4,8 @@
 // prefers-color-scheme
 // ==========================================
 
-import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import type { ThemeMode } from '@app/types';
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 
 const THEME_STORAGE_KEY = 'hyperpush_theme';
 

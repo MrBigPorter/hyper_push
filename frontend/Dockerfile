@@ -1,13 +1,14 @@
 # ==========================================
 # HyperPush — Frontend Dockerfile
 # ==========================================
-# 前端已部署到 Cloudflare Pages，此 Dockerfile 仅用于本地开发。
-#
 # 开发模式 (Vite HMR):
 #   docker build --target dev ...
 #
-# 构建模式 (生成静态文件):
+# 构建静态文件:
 #   docker build --target build ...
+#
+# 生产模式 (Nginx SPA):
+#   docker build --target production ...
 # ==========================================
 
 # ─── 基础阶段 ───
@@ -34,3 +35,27 @@ COPY . .
 ARG VITE_API_URL=/graphql
 ENV VITE_API_URL=${VITE_API_URL}
 RUN bun run build
+
+# ─── 生产阶段 (Nginx SPA) ───
+FROM nginx:alpine AS production
+COPY --from=build /app/dist/app /usr/share/nginx/html
+COPY <<'NGINX_EOF' /etc/nginx/conf.d/default.conf
+server {
+    listen 80;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # SPA client-side routing — fall back to index.html
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Static assets — long cache (content-hash in filenames)
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff2?)$ {
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+    }
+}
+NGINX_EOF
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]

@@ -1,11 +1,7 @@
-import {
-  Injectable,
-  NotFoundException,
-  ConflictException,
-} from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service.js';
-import { CreateApiKeyInput } from './dto/create-api-key.input.js';
 import * as crypto from 'node:crypto';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import type { PrismaService } from '../prisma/prisma.service.js';
+import type { CreateApiKeyInput } from './dto/create-api-key.input.js';
 
 @Injectable()
 export class ApiKeysService {

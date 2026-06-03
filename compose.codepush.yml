@@ -161,7 +161,7 @@ services:
       # ── 本地文件存储 ──
       - STORAGE_TYPE=local
       - STORAGE_DIR=/data/storage
-      - LOCAL_DOWNLOAD_URL=http://localhost:3001/download
+      - LOCAL_DOWNLOAD_URL=http://localhost:3003/download
       - DATA_DIR=/data/tmp
 
       # ── JWT 签名密钥 (若未设置，启动时自动生成随机密钥) ──
@@ -189,9 +189,9 @@ services:
         condition: service_healthy
       codepush-redis:
         condition: service_healthy
-    # 暴露到 host 的 3001 端口，避免与 HyperPush BFF (3000) 冲突
+    # 暴露到 host 的 3003 端口，避免与 JoyMini 项目端口冲突
     ports:
-      - "3001:3000"
+      - "3003:3000"
     networks: [codepush]
 
 networks:

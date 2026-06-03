@@ -1,13 +1,15 @@
-import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
-import { CodepushService } from './codepush.service.js';
-import { CreateAppInput } from '@/codepush/dto';
-import { UpdateAppInput } from '@/codepush/dto';
-import { CreateDeploymentInput } from '@/codepush/dto';
-import { UpdateDeploymentInput } from '@/codepush/dto';
-import { CreateAccessKeyInput } from '@/codepush/dto';
-import { PromoteReleaseInput } from '@/codepush/dto';
-import { UpdateReleaseInput } from '@/codepush/dto';
+import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { GraphQLJSON } from 'graphql-type-json';
+import type {
+  CreateAccessKeyInput,
+  CreateAppInput,
+  CreateDeploymentInput,
+  PromoteReleaseInput,
+  UpdateAppInput,
+  UpdateDeploymentInput,
+  UpdateReleaseInput,
+} from '@/codepush/dto';
+import type { CodepushService } from './codepush.service.js';
 
 @Resolver()
 export class CodepushResolver {
@@ -25,34 +27,26 @@ export class CodepushResolver {
   }
 
   @Mutation(() => GraphQLJSON)
-  async codepushLogout(
-    @Args('serverId') serverId: string,
-  ) {
+  async codepushLogout(@Args('serverId') serverId: string) {
     return this.codepushService.logout(serverId);
   }
 
   // ── Account ────────────────────────────────────────────────────────────
 
   @Query(() => GraphQLJSON)
-  async codepushAccount(
-    @Args('serverId') serverId: string,
-  ) {
+  async codepushAccount(@Args('serverId') serverId: string) {
     return this.codepushService.getAccount(serverId);
   }
 
   // ── Access Keys ────────────────────────────────────────────────────────
 
   @Query(() => [GraphQLJSON])
-  async codepushAccessKeys(
-    @Args('serverId') serverId: string,
-  ) {
+  async codepushAccessKeys(@Args('serverId') serverId: string) {
     return this.codepushService.listAccessKeys(serverId);
   }
 
   @Mutation(() => GraphQLJSON)
-  async createCodepushAccessKey(
-    @Args('input') input: CreateAccessKeyInput,
-  ) {
+  async createCodepushAccessKey(@Args('input') input: CreateAccessKeyInput) {
     return this.codepushService.createAccessKey(
       input.serverId,
       input.friendlyName,
@@ -63,10 +57,7 @@ export class CodepushResolver {
   }
 
   @Mutation(() => Boolean)
-  async deleteCodepushAccessKey(
-    @Args('serverId') serverId: string,
-    @Args('name') name: string,
-  ) {
+  async deleteCodepushAccessKey(@Args('serverId') serverId: string, @Args('name') name: string) {
     await this.codepushService.deleteAccessKey(serverId, name);
     return true;
   }
@@ -74,40 +65,22 @@ export class CodepushResolver {
   // ── Apps ───────────────────────────────────────────────────────────────
 
   @Query(() => [GraphQLJSON])
-  async codepushApps(
-    @Args('serverId') serverId: string,
-  ) {
+  async codepushApps(@Args('serverId') serverId: string) {
     return this.codepushService.listApps(serverId);
   }
 
   @Mutation(() => GraphQLJSON)
-  async createCodepushApp(
-    @Args('input') input: CreateAppInput,
-  ) {
-    return this.codepushService.createApp(
-      input.serverId,
-      input.name,
-      input.os,
-      input.platform,
-    );
+  async createCodepushApp(@Args('input') input: CreateAppInput) {
+    return this.codepushService.createApp(input.serverId, input.name, input.os, input.platform);
   }
 
   @Mutation(() => GraphQLJSON)
-  async updateCodepushApp(
-    @Args('input') input: UpdateAppInput,
-  ) {
-    return this.codepushService.updateApp(
-      input.serverId,
-      input.appName,
-      input.newName,
-    );
+  async updateCodepushApp(@Args('input') input: UpdateAppInput) {
+    return this.codepushService.updateApp(input.serverId, input.appName, input.newName);
   }
 
   @Mutation(() => Boolean)
-  async deleteCodepushApp(
-    @Args('serverId') serverId: string,
-    @Args('appName') appName: string,
-  ) {
+  async deleteCodepushApp(@Args('serverId') serverId: string, @Args('appName') appName: string) {
     await this.codepushService.deleteApp(serverId, appName);
     return true;
   }
@@ -153,10 +126,7 @@ export class CodepushResolver {
   // ── Deployments ────────────────────────────────────────────────────────
 
   @Query(() => [GraphQLJSON])
-  async codepushDeployments(
-    @Args('serverId') serverId: string,
-    @Args('appName') appName: string,
-  ) {
+  async codepushDeployments(@Args('serverId') serverId: string, @Args('appName') appName: string) {
     return this.codepushService.listDeployments(serverId, appName);
   }
 
@@ -170,20 +140,12 @@ export class CodepushResolver {
   }
 
   @Mutation(() => GraphQLJSON)
-  async createCodepushDeployment(
-    @Args('input') input: CreateDeploymentInput,
-  ) {
-    return this.codepushService.createDeployment(
-      input.serverId,
-      input.appName,
-      input.name,
-    );
+  async createCodepushDeployment(@Args('input') input: CreateDeploymentInput) {
+    return this.codepushService.createDeployment(input.serverId, input.appName, input.name);
   }
 
   @Mutation(() => GraphQLJSON)
-  async updateCodepushDeployment(
-    @Args('input') input: UpdateDeploymentInput,
-  ) {
+  async updateCodepushDeployment(@Args('input') input: UpdateDeploymentInput) {
     return this.codepushService.updateDeployment(
       input.serverId,
       input.appName,
@@ -214,9 +176,7 @@ export class CodepushResolver {
   }
 
   @Mutation(() => GraphQLJSON)
-  async updateCodepushRelease(
-    @Args('input') input: UpdateReleaseInput,
-  ) {
+  async updateCodepushRelease(@Args('input') input: UpdateReleaseInput) {
     return this.codepushService.updateRelease(
       input.serverId,
       input.appName,
@@ -235,9 +195,7 @@ export class CodepushResolver {
   }
 
   @Mutation(() => GraphQLJSON)
-  async promoteCodepushRelease(
-    @Args('input') input: PromoteReleaseInput,
-  ) {
+  async promoteCodepushRelease(@Args('input') input: PromoteReleaseInput) {
     return this.codepushService.promoteRelease(
       input.serverId,
       input.appName,

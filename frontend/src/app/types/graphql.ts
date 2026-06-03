@@ -3,13 +3,7 @@
 // Matches backend resolver field names
 // ==========================================
 
-import type {
-  User,
-  Server,
-  ApiKey,
-  AuditLog,
-  PaginationInfo,
-} from './models';
+import type { ApiKey, AuditLog, PaginationInfo, Server, User } from './models';
 
 // ─── Auth ───────────────────────────────────────
 

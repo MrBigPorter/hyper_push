@@ -1,19 +1,19 @@
 import {
-  Controller,
-  Post,
-  Param,
-  Body,
-  UseInterceptors,
-  UploadedFile,
   BadRequestException,
+  Body,
+  Controller,
+  Param,
+  Post,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { CodepushService } from './codepush.service.js';
+import type { CodepushService } from './codepush.service.js';
 
 /**
  * Minimal Multer file interface (avoids dependency on Express type augmentation).
  */
-interface UploadedFile {
+interface MulterFile {
   fieldname: string;
   originalname: string;
   encoding: string;
@@ -46,7 +46,7 @@ export class CodepushController {
     @Param('serverId') serverId: string,
     @Param('appName') appName: string,
     @Param('deploymentName') deploymentName: string,
-    @UploadedFile() packageFile: UploadedFile,
+    @UploadedFile() packageFile: MulterFile,
     @Body('packageInfo') packageInfoRaw?: string,
   ) {
     if (!packageFile) {

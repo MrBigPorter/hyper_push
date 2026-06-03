@@ -1,11 +1,11 @@
+import { ApolloProvider } from '@apollo/client/react';
+import { ThemeProvider } from '@app/components/ThemeProvider';
+import { apolloClient } from '@app/lib/apollo';
+import { store } from '@app/store';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { Provider } from 'react-redux';
-import { ApolloProvider } from '@apollo/client/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { store } from '@app/store';
-import { apolloClient } from '@app/lib/apollo';
-import { ThemeProvider } from '@app/components/ThemeProvider';
 import { App } from './App';
 
 const queryClient = new QueryClient({

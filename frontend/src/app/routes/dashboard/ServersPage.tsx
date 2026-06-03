@@ -3,11 +3,15 @@
 // Create Server with username/password auth
 // ==========================================
 
-import { useState } from 'react';
+import { useMutation, useQuery } from '@apollo/client/react';
+import { Button, Card, CardHeader } from '@app/components/ui';
+import { CREATE_SERVER, DELETE_SERVER, GET_SERVERS } from '@app/lib/graphql';
+import type { ServersResponseData } from '@app/types/graphql';
+import type { Server as ServerModel } from '@app/types/models';
 import { useNavigate } from '@tanstack/react-router';
-import { useQuery, useMutation } from '@apollo/client/react';
-import { Card, CardHeader, Button } from '@app/components/ui';
-import { Plus, Server, User, KeyRound } from 'lucide-react';
+import { KeyRound, Plus, Server, User } from 'lucide-react';
+import { useState } from 'react';
+import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
   DialogContent,
@@ -15,12 +19,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
-import { GET_SERVERS, CREATE_SERVER, DELETE_SERVER } from '@app/lib/graphql';
-import { Badge } from '@/components/ui/badge';
-import type { Server as ServerModel } from '@app/types/models';
-import type { ServersResponseData } from '@app/types/graphql';
 
 interface CreateServerForm {
   name: string;
@@ -77,10 +76,7 @@ export function ServersPage() {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  const isFormValid =
-    form.name.trim() &&
-    form.username.trim() &&
-    form.password.trim();
+  const isFormValid = form.name.trim() && form.username.trim() && form.password.trim();
 
   return (
     <div className="space-y-6">
@@ -97,9 +93,8 @@ export function ServersPage() {
               <DialogHeader>
                 <DialogTitle>Add CodePush Server</DialogTitle>
                 <DialogDescription>
-                  Enter the server details and your CodePush login credentials.
-                  The password is used once to obtain an access token and is not
-                  stored.
+                  Enter the server details and your CodePush login credentials. The password is used
+                  once to obtain an access token and is not stored.
                 </DialogDescription>
               </DialogHeader>
 
@@ -206,10 +201,13 @@ export function ServersPage() {
         ) : (
           <div className="divide-y divide-gray-200 dark:divide-dark-700">
             {servers.map((server) => (
-              <div
+              <button
                 key={server.id}
-                className="flex items-center justify-between px-6 py-4 hover:bg-gray-50 dark:hover:bg-dark-800/50 cursor-pointer transition-colors"
-                onClick={() => navigate({ to: '/dashboard/servers/$id', params: { id: server.id } })}
+                type="button"
+                className="flex w-full items-center justify-between px-6 py-4 hover:bg-gray-50 dark:hover:bg-dark-800/50 cursor-pointer transition-colors text-left"
+                onClick={() =>
+                  navigate({ to: '/dashboard/servers/$id', params: { id: server.id } })
+                }
               >
                 <div className="flex items-center gap-4">
                   <div
@@ -218,12 +216,8 @@ export function ServersPage() {
                     }`}
                   />
                   <div>
-                    <p className="font-medium text-gray-900 dark:text-gray-100">
-                      {server.name}
-                    </p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {server.username}
-                    </p>
+                    <p className="font-medium text-gray-900 dark:text-gray-100">{server.name}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{server.username}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -241,7 +235,7 @@ export function ServersPage() {
                     Delete
                   </button>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         )}

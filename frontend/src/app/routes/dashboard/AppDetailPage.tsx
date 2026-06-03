@@ -3,28 +3,21 @@
 // Tabs: Deployments / Releases / Access Keys
 // ==========================================
 
-import { useState } from 'react';
-import { useNavigate, useParams } from '@tanstack/react-router';
 import { useQuery } from '@apollo/client/react';
-import {
-  ArrowLeft,
-  Smartphone,
-  Layers,
-  Package,
-  KeyRound,
-  RotateCcw,
-} from 'lucide-react';
-import { Card } from '@app/components/ui/Card';
 import { Button } from '@app/components/ui/Button';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Card } from '@app/components/ui/Card';
 import {
+  CODEPUSH_ACCESS_KEYS,
   CODEPUSH_APPS,
   CODEPUSH_DEPLOYMENTS,
   CODEPUSH_RELEASE_HISTORY,
-  CODEPUSH_ACCESS_KEYS,
 } from '@app/lib/graphql';
+import { useNavigate, useParams } from '@tanstack/react-router';
+import { ArrowLeft, KeyRound, Layers, Package, RotateCcw, Smartphone } from 'lucide-react';
+import { useState } from 'react';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 // ─── Helpers ─────────────────────────────────
 
@@ -34,7 +27,7 @@ function formatBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
 }
 
-function isObject(val: unknown): val is Record<string, unknown> {
+function _isObject(val: unknown): val is Record<string, unknown> {
   return typeof val === 'object' && val !== null;
 }
 
@@ -51,7 +44,11 @@ export function AppDetailPage() {
 
   const [activeDeployment, setActiveDeployment] = useState<string | null>(null);
 
-  const apps = (Array.isArray((appsData as Record<string, unknown>)?.codepushApps) ? (appsData as Record<string, unknown>).codepushApps : []) as Record<string, unknown>[];
+  const apps = (
+    Array.isArray((appsData as Record<string, unknown>)?.codepushApps)
+      ? (appsData as Record<string, unknown>).codepushApps
+      : []
+  ) as Record<string, unknown>[];
 
   return (
     <div className="space-y-6">
@@ -75,9 +72,7 @@ export function AppDetailPage() {
         <Card padding="lg">
           <div className="py-12 text-center">
             <Smartphone className="mx-auto h-12 w-12 text-gray-300 dark:text-gray-600" />
-            <p className="mt-4 text-gray-400 dark:text-gray-500">
-              No apps found on this server
-            </p>
+            <p className="mt-4 text-gray-400 dark:text-gray-500">No apps found on this server</p>
           </div>
         </Card>
       ) : (
@@ -113,33 +108,36 @@ function AppDetailCard({
     variables: { serverId, appName },
   });
 
-  const { data: releasesData, loading: releasesLoading } = useQuery(
-    CODEPUSH_RELEASE_HISTORY,
-    {
-      variables: {
-        serverId,
-        appName,
-        deploymentName: activeDeployment ?? '',
-      },
-      skip: !activeDeployment,
+  const { data: releasesData, loading: releasesLoading } = useQuery(CODEPUSH_RELEASE_HISTORY, {
+    variables: {
+      serverId,
+      appName,
+      deploymentName: activeDeployment ?? '',
     },
-  );
+    skip: !activeDeployment,
+  });
 
   const { data: accessKeysData, loading: keysLoading } = useQuery(CODEPUSH_ACCESS_KEYS, {
     variables: { serverId },
   });
 
-  const deployments = (Array.isArray((deploymentsData as Record<string, unknown>)?.codepushDeployments)
-    ? (deploymentsData as Record<string, unknown>).codepushDeployments
-    : []) as Record<string, unknown>[];
+  const deployments = (
+    Array.isArray((deploymentsData as Record<string, unknown>)?.codepushDeployments)
+      ? (deploymentsData as Record<string, unknown>).codepushDeployments
+      : []
+  ) as Record<string, unknown>[];
 
-  const releases = (Array.isArray((releasesData as Record<string, unknown>)?.codepushReleaseHistory)
-    ? (releasesData as Record<string, unknown>).codepushReleaseHistory
-    : []) as Record<string, unknown>[];
+  const releases = (
+    Array.isArray((releasesData as Record<string, unknown>)?.codepushReleaseHistory)
+      ? (releasesData as Record<string, unknown>).codepushReleaseHistory
+      : []
+  ) as Record<string, unknown>[];
 
-  const accessKeys = (Array.isArray((accessKeysData as Record<string, unknown>)?.codepushAccessKeys)
-    ? (accessKeysData as Record<string, unknown>).codepushAccessKeys
-    : []) as Record<string, unknown>[];
+  const accessKeys = (
+    Array.isArray((accessKeysData as Record<string, unknown>)?.codepushAccessKeys)
+      ? (accessKeysData as Record<string, unknown>).codepushAccessKeys
+      : []
+  ) as Record<string, unknown>[];
 
   return (
     <div className="space-y-6">
@@ -149,12 +147,8 @@ function AppDetailCard({
           <Smartphone className="h-6 w-6 text-white" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            {appName}
-          </h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Platform: {appPlatform}
-          </p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{appName}</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Platform: {appPlatform}</p>
         </div>
       </div>
 
@@ -184,9 +178,7 @@ function AppDetailCard({
                 <Skeleton className="h-12 w-full" />
               </div>
             ) : deployments.length === 0 ? (
-              <p className="py-8 text-center text-sm text-gray-400">
-                No deployments yet.
-              </p>
+              <p className="py-8 text-center text-sm text-gray-400">No deployments yet.</p>
             ) : (
               <div className="space-y-4">
                 {deployments.map((dep: Record<string, unknown>, idx: number) => (
@@ -200,9 +192,7 @@ function AppDetailCard({
                           {String(dep.name ?? '')}
                         </span>
                         <Badge variant="secondary" className="text-xs">
-                          {String(dep.name ?? '') === 'Production'
-                            ? 'Live'
-                            : 'Testing'}
+                          {String(dep.name ?? '') === 'Production' ? 'Live' : 'Testing'}
                         </Badge>
                       </div>
                     </div>
@@ -226,30 +216,21 @@ function AppDetailCard({
           <Card padding="lg">
             {/* Deployment Filter */}
             <div className="mb-4 flex items-center gap-2 flex-wrap">
-              <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Filter:
-              </span>
-              {['All', ...deployments.map((d) => String(d.name ?? ''))].map(
-                (name) => (
-                  <button
-                    key={name}
-                    type="button"
-                    onClick={() =>
-                      onSetActiveDeployment(
-                        name === 'All' ? null : name,
-                      )
-                    }
-                    className={`rounded-lg px-3 py-1 text-xs font-medium transition-colors ${
-                      (name === 'All' && !activeDeployment) ||
-                      activeDeployment === name
-                        ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/20 dark:text-primary-400'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-dark-800 dark:text-gray-400 dark:hover:bg-dark-700'
-                    }`}
-                  >
-                    {name}
-                  </button>
-                ),
-              )}
+              <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Filter:</span>
+              {['All', ...deployments.map((d) => String(d.name ?? ''))].map((name) => (
+                <button
+                  key={name}
+                  type="button"
+                  onClick={() => onSetActiveDeployment(name === 'All' ? null : name)}
+                  className={`rounded-lg px-3 py-1 text-xs font-medium transition-colors ${
+                    (name === 'All' && !activeDeployment) || activeDeployment === name
+                      ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/20 dark:text-primary-400'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-dark-800 dark:text-gray-400 dark:hover:bg-dark-700'
+                  }`}
+                >
+                  {name}
+                </button>
+              ))}
             </div>
 
             {releasesLoading ? (
@@ -274,9 +255,7 @@ function AppDetailCard({
                   const size = Number(release.size ?? release.packageSize ?? 0);
                   const isMandatory = Boolean(release.isMandatory);
                   const isDisabled = Boolean(release.isDisabled);
-                  const description = release.description
-                    ? String(release.description)
-                    : null;
+                  const description = release.description ? String(release.description) : null;
                   const releasedBy = String(release.releasedBy ?? '');
                   const createdAt = String(release.createdAt ?? '');
 
@@ -292,8 +271,7 @@ function AppDetailCard({
                           </span>
                           <Badge
                             variant={
-                              (release.status as string) === 'active' ||
-                              release.active === true
+                              (release.status as string) === 'active' || release.active === true
                                 ? 'default'
                                 : 'secondary'
                             }
@@ -335,9 +313,7 @@ function AppDetailCard({
                           <RotateCcw className="mr-1 inline-block h-3 w-3" />
                           {releasedBy}
                         </span>
-                        {createdAt && (
-                          <span>{new Date(createdAt).toLocaleString()}</span>
-                        )}
+                        {createdAt && <span>{new Date(createdAt).toLocaleString()}</span>}
                       </div>
                     </div>
                   );
@@ -356,9 +332,7 @@ function AppDetailCard({
                 <Skeleton className="h-12 w-full" />
               </div>
             ) : accessKeys.length === 0 ? (
-              <p className="py-8 text-center text-sm text-gray-400">
-                No access keys yet.
-              </p>
+              <p className="py-8 text-center text-sm text-gray-400">No access keys yet.</p>
             ) : (
               <div className="space-y-4">
                 {accessKeys.map((key: Record<string, unknown>, idx: number) => (
@@ -380,8 +354,7 @@ function AppDetailCard({
                       </code>
                       {!!key.createdAt && (
                         <p className="mt-1 text-xs text-gray-400">
-                          Created{' '}
-                          {new Date(String(key.createdAt)).toLocaleDateString()}
+                          Created {new Date(String(key.createdAt)).toLocaleDateString()}
                           {!!key.expiresAt &&
                             ` · Expires ${new Date(String(key.expiresAt)).toLocaleDateString()}`}
                         </p>

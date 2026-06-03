@@ -4,10 +4,14 @@
 
 import { useQuery } from '@apollo/client/react';
 import { Card } from '@app/components/ui';
-import { Server, KeyRound, ScrollText, Cloud } from 'lucide-react';
-import { GET_SERVERS, GET_API_KEYS, GET_AUDIT_LOGS } from '@app/lib/graphql';
+import { GET_API_KEYS, GET_AUDIT_LOGS, GET_SERVERS } from '@app/lib/graphql';
+import type {
+  ApiKeysResponseData,
+  AuditLogsResponseData,
+  ServersResponseData,
+} from '@app/types/graphql';
 import { useNavigate } from '@tanstack/react-router';
-import type { ServersResponseData, ApiKeysResponseData, AuditLogsResponseData } from '@app/types/graphql';
+import { Cloud, KeyRound, ScrollText, Server } from 'lucide-react';
 
 interface StatCardProps {
   title: string;
@@ -31,12 +35,8 @@ function StatCard({ title, value, icon: Icon, color, href }: StatCardProps) {
           <Icon className="h-6 w-6" aria-hidden="true" />
         </div>
         <div>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            {title}
-          </p>
-          <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            {value}
-          </p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">{title}</p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{value}</p>
         </div>
       </div>
     </Card>
@@ -52,18 +52,15 @@ export function DashboardHome() {
 
   const serverCount = (serversData as ServersResponseData | undefined)?.getServers?.length ?? '--';
   const apiKeyCount = (apiKeysData as ApiKeysResponseData | undefined)?.getApiKeys?.length ?? '--';
-  const auditLogCount = (auditLogsData as AuditLogsResponseData | undefined)?.getAuditLogs?.pagination?.total ?? '--';
+  const auditLogCount =
+    (auditLogsData as AuditLogsResponseData | undefined)?.getAuditLogs?.pagination?.total ?? '--';
   const codepushAppsCount = '--'; // Requires selected server
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-          Dashboard
-        </h1>
-        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          System Overview
-        </p>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Dashboard</h1>
+        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">System Overview</p>
       </div>
 
       {/* Stats Grid */}

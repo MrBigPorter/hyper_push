@@ -1,10 +1,10 @@
-import { Resolver, Query, Mutation, Args, Context } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { AuditLogService } from './audit-log.service.js';
+import { Args, Context, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { AuditLogFilterInput } from '@/audit-log/dto';
+import { GqlAuthGuard } from '@/auth/guards/gql-auth.guard.js';
+import type { AuditLogService } from './audit-log.service.js';
 import { AuditLogModel } from './models/audit-log.model.js';
 import { AuditLogListResponseModel } from './models/audit-log-list.response.js';
-import { GqlAuthGuard } from '@/auth/guards/gql-auth.guard.js';
 
 @Resolver(() => AuditLogModel)
 @UseGuards(GqlAuthGuard)
@@ -13,7 +13,9 @@ export class AuditLogResolver {
 
   @Query(() => AuditLogListResponseModel)
   async getAuditLogs(
-    @Args('filter', { type: () => AuditLogFilterInput, nullable: true }) filter: AuditLogFilterInput | undefined,
+    @Args('filter', { type: () => AuditLogFilterInput, nullable: true }) filter:
+      | AuditLogFilterInput
+      | undefined,
     @Context() ctx: { req: { user: { sub: string } } },
   ) {
     return this.auditLogService.findAll(ctx.req.user.sub, filter);

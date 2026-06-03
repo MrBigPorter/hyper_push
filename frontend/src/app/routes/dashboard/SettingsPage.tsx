@@ -3,25 +3,23 @@
 // Profile + API Keys sections
 // ==========================================
 
+import { useMutation, useQuery } from '@apollo/client/react';
+import { Button } from '@app/components/ui/Button';
+import { Card } from '@app/components/ui/Card';
+import { useAppDispatch, useAppSelector } from '@app/hooks';
+import {
+  CREATE_API_KEY,
+  DELETE_API_KEY,
+  GET_API_KEYS,
+  UPDATE_USER_MUTATION,
+} from '@app/lib/graphql';
+import { setUser } from '@app/store/slices/authSlice';
+import type { ApiKeysResponseData, UpdateUserResponseData } from '@app/types/graphql';
+import type { ApiKey } from '@app/types/models';
+import { Check, Copy, Eye, EyeOff, KeyRound, Plus, Save, Trash2, User } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { useQuery, useMutation } from '@apollo/client/react';
-import { useAppSelector, useAppDispatch } from '@app/hooks';
-import { setUser } from '@app/store/slices/authSlice';
-import {
-  User,
-  KeyRound,
-  Save,
-  Copy,
-  Check,
-  Eye,
-  EyeOff,
-  Plus,
-  Trash2,
-} from 'lucide-react';
-import { Card } from '@app/components/ui/Card';
-import { Input } from '@app/components/ui/Input';
-import { Button } from '@app/components/ui/Button';
+import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
   DialogContent,
@@ -29,12 +27,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
-import { Badge } from '@/components/ui/badge';
-import { GET_API_KEYS, CREATE_API_KEY, DELETE_API_KEY, UPDATE_USER_MUTATION } from '@app/lib/graphql';
-import type { ApiKey } from '@app/types/models';
-import type { ApiKeysResponseData, UpdateUserResponseData } from '@app/types/graphql';
 
 interface ProfileFormData {
   name: string;
@@ -63,11 +56,7 @@ export function SettingsPage() {
 
   const apiKeys: ApiKey[] = (data as ApiKeysResponseData | undefined)?.getApiKeys ?? [];
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<ProfileFormData>({
+  const { register, handleSubmit } = useForm<ProfileFormData>({
     defaultValues: {
       name: user?.name ?? '',
       email: user?.email ?? '',
@@ -146,9 +135,7 @@ export function SettingsPage() {
     <div className="space-y-8">
       {/* Page Title */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-          Settings
-        </h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Settings</h1>
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
           Manage your profile and API keys
         </p>
@@ -161,12 +148,8 @@ export function SettingsPage() {
             <User className="h-5 w-5 text-primary-600 dark:text-primary-400" />
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-              Profile
-            </h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Your personal information
-            </p>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Profile</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Your personal information</p>
           </div>
         </div>
 
@@ -202,23 +185,24 @@ export function SettingsPage() {
                 className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:border-gray-600 dark:bg-dark-800 dark:text-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
                 {...register('email')}
               />
-              <p className="mt-1 text-xs text-gray-400">
-                Email cannot be changed
-              </p>
+              <p className="mt-1 text-xs text-gray-400">Email cannot be changed</p>
             </div>
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <span className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
               Role
-            </label>
-            <Badge variant="secondary">
-              {user?.role ?? 'developer'}
-            </Badge>
+            </span>
+            <Badge variant="secondary">{user?.role ?? 'developer'}</Badge>
           </div>
 
           <div className="flex items-center gap-3 pt-2">
-            <Button type="submit" variant="primary" disabled={profileSaved || isSaving} loading={isSaving}>
+            <Button
+              type="submit"
+              variant="primary"
+              disabled={profileSaved || isSaving}
+              loading={isSaving}
+            >
               {profileSaved ? (
                 <>
                   <Check className="mr-1 h-4 w-4" />
@@ -243,9 +227,7 @@ export function SettingsPage() {
               <KeyRound className="h-5 w-5 text-amber-600 dark:text-amber-400" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                API Keys
-              </h2>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">API Keys</h2>
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 Manage your personal API access keys
               </p>
@@ -260,9 +242,7 @@ export function SettingsPage() {
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Create API Key</DialogTitle>
-                <DialogDescription>
-                  Create a new API key for programmatic access.
-                </DialogDescription>
+                <DialogDescription>Create a new API key for programmatic access.</DialogDescription>
               </DialogHeader>
 
               <div className="space-y-3 py-2">
@@ -314,18 +294,13 @@ export function SettingsPage() {
                     <span className="font-medium text-gray-900 dark:text-gray-100">
                       {apiKey.name}
                     </span>
-                    <Badge
-                      variant={apiKey.active ? 'default' : 'secondary'}
-                      className="text-xs"
-                    >
+                    <Badge variant={apiKey.active ? 'default' : 'secondary'} className="text-xs">
                       {apiKey.active ? 'Active' : 'Inactive'}
                     </Badge>
                   </div>
                   <div className="mt-1 flex items-center gap-2">
                     <code className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600 dark:bg-dark-800 dark:text-gray-400">
-                      {revealedKeys.has(apiKey.id)
-                        ? apiKey.key
-                        : `${apiKey.key.slice(0, 12)}...`}
+                      {revealedKeys.has(apiKey.id) ? apiKey.key : `${apiKey.key.slice(0, 12)}...`}
                     </code>
                     <button
                       type="button"
@@ -377,9 +352,8 @@ export function SettingsPage() {
                     <DialogHeader>
                       <DialogTitle>Revoke API Key</DialogTitle>
                       <DialogDescription>
-                        Are you sure you want to revoke "{apiKey.name}"?
-                        This action cannot be undone. Any services using this
-                        key will lose access.
+                        Are you sure you want to revoke "{apiKey.name}"? This action cannot be
+                        undone. Any services using this key will lose access.
                       </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>

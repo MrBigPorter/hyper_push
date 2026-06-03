@@ -4,9 +4,8 @@
 //（GraphQL login/register mutation 由你写）
 // ==========================================
 
+import type { AuthState, User } from '@app/types';
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type { User } from '@app/types';
-import type { AuthState } from '@app/types';
 
 const AUTH_TOKEN_KEY = 'hyperpush_token';
 
@@ -36,10 +35,7 @@ const authSlice = createSlice({
     },
 
     /** 登录/注册成功 (保存 token + user) */
-    authSuccess(
-      state,
-      action: PayloadAction<{ token: string; user: User }>,
-    ) {
+    authSuccess(state, action: PayloadAction<{ token: string; user: User }>) {
       state.token = action.payload.token;
       state.user = action.payload.user;
       state.isLoading = false;
@@ -77,13 +73,7 @@ const authSlice = createSlice({
   },
 });
 
-export const {
-  authStart,
-  authSuccess,
-  authFailure,
-  setUser,
-  logout,
-  clearError,
-} = authSlice.actions;
+export const { authStart, authSuccess, authFailure, setUser, logout, clearError } =
+  authSlice.actions;
 
 export default authSlice.reducer;

@@ -2,20 +2,20 @@
 // HyperPush — Sidebar Navigation
 // ==========================================
 
-import { useCallback } from 'react';
-import { useNavigate, useLocation } from '@tanstack/react-router';
 import { useAppDispatch } from '@app/hooks';
 import { logout } from '@app/store/slices/authSlice';
+import { useLocation, useNavigate } from '@tanstack/react-router';
+import clsx from 'clsx';
 import {
-  Server,
-  KeyRound,
-  ScrollText,
   Cloud,
-  LogOut,
+  KeyRound,
   LayoutDashboard,
+  LogOut,
+  ScrollText,
+  Server,
   Settings,
 } from 'lucide-react';
-import clsx from 'clsx';
+import { useCallback } from 'react';
 
 interface NavItem {
   label: string;
@@ -37,10 +37,7 @@ export function Sidebar() {
   const location = useLocation();
   const dispatch = useAppDispatch();
 
-  const isActive = useCallback(
-    (path: string) => location.pathname === path,
-    [location.pathname],
-  );
+  const isActive = useCallback((path: string) => location.pathname === path, [location.pathname]);
 
   const handleLogout = () => {
     dispatch(logout());
@@ -55,12 +52,8 @@ export function Sidebar() {
           <Cloud className="h-5 w-5 text-white" aria-hidden="true" />
         </div>
         <div>
-          <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100">
-            HyperPush
-          </h1>
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            Management Console
-          </p>
+          <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100">HyperPush</h1>
+          <p className="text-xs text-gray-500 dark:text-gray-400">Management Console</p>
         </div>
       </div>
 

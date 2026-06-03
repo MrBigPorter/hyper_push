@@ -5,8 +5,8 @@
 // class strategy rather than OS media query.
 // ==========================================
 
-import { type ReactNode, useEffect } from 'react';
 import { useAppSelector } from '@app/hooks';
+import { type ReactNode, useEffect } from 'react';
 
 interface ThemeProviderProps {
   children: ReactNode;

@@ -159,7 +159,7 @@ jobs:
         working-directory: frontend
         run: npm run build:only
         env:
-          VITE_API_URL: https://${{ secrets.CONSOLE_DOMAIN }}/graphql
+          VITE_API_URL: https://hyperpush.org/graphql
 
       - name: Create Cloudflare Pages project if not exists
         working-directory: frontend
@@ -434,7 +434,7 @@ jobs:
             TOKEN_SECRET=${{ secrets.TOKEN_SECRET }}
             DATABASE_URL=${{ secrets.DATABASE_URL || 'postgresql://hyperpush:hyperpush123@db:5432/hyperpush' }}
             PUBLIC_URL=https://${{ secrets.CODEPUSH_DOMAIN }}
-            CORS_ORIGINS=https://app.hyperpush.org
+            CORS_ORIGINS=https://hyperpush.org
             ENVEOF
 
             echo "========================================"
@@ -572,6 +572,6 @@ jobs:
           echo "  ssh root@VPS 'docker ps && docker exec hyperpush-app wget -qO- http://localhost:3000/graphql --post-data=\"{query:{_health}}\" --header=Content-Type:application/json'"
           echo ""
           echo "To configure DNS:"
-          echo "  A record (API): ${{ secrets.CONSOLE_DOMAIN }} → VPS_IP"
+          echo "  A record (Main): ${{ secrets.CONSOLE_DOMAIN }} → VPS_IP"
           echo "  A record (CodePush): ${{ secrets.CODEPUSH_DOMAIN }} → VPS_IP"
           echo "  CNAME (Frontend): hyperpush.pages.dev → Cloudflare Pages (or custom domain)"

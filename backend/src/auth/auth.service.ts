@@ -1,8 +1,13 @@
-import { Injectable, UnauthorizedException, ConflictException, NotFoundException } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
+import type { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
-import { PrismaService } from '../prisma/prisma.service.js';
-import { RegisterInput, LoginInput, UpdateUserInput } from '@/auth/dto';
+import type { LoginInput, RegisterInput, UpdateUserInput } from '@/auth/dto';
+import type { PrismaService } from '../prisma/prisma.service.js';
 
 @Injectable()
 export class AuthService {
@@ -78,8 +83,16 @@ export class AuthService {
     return this.jwtService.sign(payload);
   }
 
-  private sanitizeUser(user: { id: string; email: string; name: string | null; role: string; createdAt: Date; updatedAt: Date }) {
-    const { password, ...rest } = user as any;
+  private sanitizeUser(user: {
+    id: string;
+    email: string;
+    name: string | null;
+    role: string;
+    createdAt: Date;
+    updatedAt: Date;
+    password?: string;
+  }) {
+    const { password, ...rest } = user;
     return rest;
   }
 }

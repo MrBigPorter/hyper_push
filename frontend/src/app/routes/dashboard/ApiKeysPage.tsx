@@ -2,10 +2,14 @@
 // HyperPush — API Keys Management Page
 // ==========================================
 
+import { useMutation, useQuery } from '@apollo/client/react';
+import { Button, Card, CardHeader } from '@app/components/ui';
+import { CREATE_API_KEY, DELETE_API_KEY, GET_API_KEYS } from '@app/lib/graphql';
+import type { ApiKeysResponseData } from '@app/types/graphql';
+import type { ApiKey } from '@app/types/models';
+import { Check, Copy, Eye, EyeOff, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
-import { useQuery, useMutation } from '@apollo/client/react';
-import { Card, CardHeader, Button } from '@app/components/ui';
-import { Plus, Copy, Check, Eye, EyeOff, Trash2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
   DialogContent,
@@ -13,12 +17,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
-import { Badge } from '@/components/ui/badge';
-import { GET_API_KEYS, CREATE_API_KEY, DELETE_API_KEY } from '@app/lib/graphql';
-import type { ApiKey } from '@app/types/models';
-import type { ApiKeysResponseData } from '@app/types/graphql';
 
 export function ApiKeysPage() {
   const [open, setOpen] = useState(false);
@@ -99,9 +98,7 @@ export function ApiKeysPage() {
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Create API Key</DialogTitle>
-                <DialogDescription>
-                  Create a new API key for programmatic access.
-                </DialogDescription>
+                <DialogDescription>Create a new API key for programmatic access.</DialogDescription>
               </DialogHeader>
 
               <div className="space-y-3 py-2">
@@ -152,27 +149,19 @@ export function ApiKeysPage() {
         ) : (
           <div className="divide-y divide-gray-200 dark:divide-dark-700">
             {apiKeys.map((apiKey) => (
-              <div
-                key={apiKey.id}
-                className="flex items-center justify-between px-6 py-4"
-              >
+              <div key={apiKey.id} className="flex items-center justify-between px-6 py-4">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-gray-900 dark:text-gray-100">
                       {apiKey.name}
                     </span>
-                    <Badge
-                      variant={apiKey.active ? 'default' : 'secondary'}
-                      className="text-xs"
-                    >
+                    <Badge variant={apiKey.active ? 'default' : 'secondary'} className="text-xs">
                       {apiKey.active ? 'Active' : 'Inactive'}
                     </Badge>
                   </div>
                   <div className="mt-1 flex items-center gap-2">
                     <code className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600 dark:bg-dark-800 dark:text-gray-400">
-                      {revealedKeys.has(apiKey.id)
-                        ? apiKey.key
-                        : `${apiKey.key.slice(0, 12)}...`}
+                      {revealedKeys.has(apiKey.id) ? apiKey.key : `${apiKey.key.slice(0, 12)}...`}
                     </code>
                     <button
                       type="button"
@@ -225,9 +214,8 @@ export function ApiKeysPage() {
                     <DialogHeader>
                       <DialogTitle>Revoke API Key</DialogTitle>
                       <DialogDescription>
-                        Are you sure you want to revoke "{apiKey.name}"?
-                        This action cannot be undone. Any services using this
-                        key will lose access.
+                        Are you sure you want to revoke "{apiKey.name}"? This action cannot be
+                        undone. Any services using this key will lose access.
                       </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>

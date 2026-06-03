@@ -1,22 +1,6 @@
-# ==========================================
-# HyperPush — Cloudflare Pages Configuration
-# ==========================================
-# 部署命令:
-#   wrangler pages deploy dist/app --project-name=hyperpush
-#
-# 首次部署需要登录:
-#   wrangler login
-#   或设置 CLOUDFLARE_API_TOKEN 环境变量
-#
-# 环境变量需要在 Cloudflare Pages Dashboard 设置:
-#   Settings → Environment variables → Production
-#   VITE_API_URL=https://console.hyperpush.org/graphql
-# ==========================================
-
 name = "hyperpush"
 compatibility_date = "2025-05-01"
-
 pages_build_output_dir = "dist/app"
 
 [env.production]
-vars = { VITE_API_URL = "https://console.hyperpush.org/graphql" }
+vars = { VITE_API_URL = "https://hyperpush.org/graphql" }

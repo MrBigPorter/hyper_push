@@ -1,7 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service.js';
-import { CreateServerInput } from '@/servers/dto';
-import { UpdateServerInput } from '@/servers/dto';
+import type { CreateServerInput, UpdateServerInput } from '@/servers/dto';
+import type { PrismaService } from '../prisma/prisma.service.js';
 
 /** Internal Docker network address for the codepush service */
 const CODEPUSH_BASE_URL = 'http://hyperpush-codepush-prod:3000';
@@ -37,10 +36,7 @@ export class ServersService {
 
   async create(input: CreateServerInput, userId: string) {
     // Login to CodePush server (POST /auth/login) to obtain JWT token
-    const jwtToken = await this.loginToCodePush(
-      input.username,
-      input.password,
-    );
+    const jwtToken = await this.loginToCodePush(input.username, input.password);
 
     return this.prisma.server.create({
       data: {
@@ -87,10 +83,7 @@ export class ServersService {
    * Note: lisong/code-push-server v5.7.1 uses JWT tokens (>64 chars) for admin API access.
    * Access tokens (≤64 chars) are for client SDK use only.
    */
-  private async loginToCodePush(
-    username: string,
-    password: string,
-  ): Promise<string> {
+  private async loginToCodePush(username: string, password: string): Promise<string> {
     const url = `${CODEPUSH_BASE_URL.replace(/\/+$/, '')}/auth/login`;
 
     const response = await fetch(url, {
@@ -101,17 +94,13 @@ export class ServersService {
 
     if (!response.ok) {
       const text = await response.text();
-      throw new Error(
-        `CodePush login failed (${response.status}): ${text}`,
-      );
+      throw new Error(`CodePush login failed (${response.status}): ${text}`);
     }
 
     const data = (await response.json()) as CodePushAuthResponse;
 
     if (data.status !== 'OK' || !data.results?.tokens) {
-      throw new Error(
-        `CodePush login failed: unexpected response ${JSON.stringify(data)}`,
-      );
+      throw new Error(`CodePush login failed: unexpected response ${JSON.stringify(data)}`);
     }
 
     return data.results.tokens;

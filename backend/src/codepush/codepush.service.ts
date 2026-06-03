@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service.js';
+import type { PrismaService } from '../prisma/prisma.service.js';
 
 /** Internal Docker network address for the codepush service */
 const CODEPUSH_BASE_URL = 'http://hyperpush-codepush-prod:3000';
@@ -21,9 +21,7 @@ export class CodepushService {
   // ── Auth helpers ───────────────────────────────────────────────────────
 
   /** Look up a server by ID and return its CODEPUSH_BASE_URL + stored JWT token */
-  private async getServerAuth(
-    serverId: string,
-  ): Promise<{ baseUrl: string; token: string }> {
+  private async getServerAuth(serverId: string): Promise<{ baseUrl: string; token: string }> {
     const server = await this.prisma.server.findUnique({
       where: { id: serverId },
     });
@@ -178,21 +176,12 @@ export class CodepushService {
   }
 
   /** POST /apps — requires { name, os, platform } */
-  async createApp(
-    serverId: string,
-    name: string,
-    os: string,
-    platform: string,
-  ): Promise<unknown> {
+  async createApp(serverId: string, name: string, os: string, platform: string): Promise<unknown> {
     return this.fetchWithAuth(serverId, 'POST', '/apps', { name, os, platform });
   }
 
   /** PATCH /apps/:appName — rename an app */
-  async updateApp(
-    serverId: string,
-    appName: string,
-    newName: string,
-  ): Promise<unknown> {
+  async updateApp(serverId: string, appName: string, newName: string): Promise<unknown> {
     return this.fetchWithAuth(serverId, 'PATCH', `/apps/${encodeURIComponent(appName)}`, {
       name: newName,
     });
@@ -204,11 +193,7 @@ export class CodepushService {
   }
 
   /** POST /apps/:appName/transfer/:email */
-  async transferApp(
-    serverId: string,
-    appName: string,
-    email: string,
-  ): Promise<unknown> {
+  async transferApp(serverId: string, appName: string, email: string): Promise<unknown> {
     return this.fetchWithAuth(
       serverId,
       'POST',
@@ -226,11 +211,7 @@ export class CodepushService {
   }
 
   /** POST /apps/:appName/collaborators/:email */
-  async addCollaborator(
-    serverId: string,
-    appName: string,
-    email: string,
-  ): Promise<unknown> {
+  async addCollaborator(serverId: string, appName: string, email: string): Promise<unknown> {
     return this.fetchWithAuth(
       serverId,
       'POST',
@@ -239,11 +220,7 @@ export class CodepushService {
   }
 
   /** DELETE /apps/:appName/collaborators/:email */
-  async removeCollaborator(
-    serverId: string,
-    appName: string,
-    email: string,
-  ): Promise<unknown> {
+  async removeCollaborator(serverId: string, appName: string, email: string): Promise<unknown> {
     return this.fetchWithAuth(
       serverId,
       'DELETE',
@@ -255,19 +232,11 @@ export class CodepushService {
 
   /** GET /apps/:appName/deployments */
   async listDeployments(serverId: string, appName: string): Promise<unknown> {
-    return this.fetchWithAuth(
-      serverId,
-      'GET',
-      `/apps/${encodeURIComponent(appName)}/deployments`,
-    );
+    return this.fetchWithAuth(serverId, 'GET', `/apps/${encodeURIComponent(appName)}/deployments`);
   }
 
   /** GET /apps/:appName/deployments/:deploymentName */
-  async getDeployment(
-    serverId: string,
-    appName: string,
-    deploymentName: string,
-  ): Promise<unknown> {
+  async getDeployment(serverId: string, appName: string, deploymentName: string): Promise<unknown> {
     return this.fetchWithAuth(
       serverId,
       'GET',
@@ -276,11 +245,7 @@ export class CodepushService {
   }
 
   /** POST /apps/:appName/deployments */
-  async createDeployment(
-    serverId: string,
-    appName: string,
-    name: string,
-  ): Promise<unknown> {
+  async createDeployment(serverId: string, appName: string, name: string): Promise<unknown> {
     return this.fetchWithAuth(
       serverId,
       'POST',
@@ -403,11 +368,7 @@ export class CodepushService {
   // ── History ────────────────────────────────────────────────────────────
 
   /** DELETE /apps/:appName/deployments/:deploymentName/history */
-  async clearHistory(
-    serverId: string,
-    appName: string,
-    deploymentName: string,
-  ): Promise<unknown> {
+  async clearHistory(serverId: string, appName: string, deploymentName: string): Promise<unknown> {
     return this.fetchWithAuth(
       serverId,
       'DELETE',

@@ -304,17 +304,17 @@ CMD ["nginx", "-g", "daemon off;"]
 **Solution:** Nginx (`nginx:alpine`) running inside Docker, configured via a single mounted config file. Config is hot-reloaded via `docker exec nginx -t && docker exec nginx -s reload` — following the same pattern as [JoyMini's production deployment](https://github.com/Porter-Sz/JoyMini_Nest_Monorepo).
 
 ```nginx
-# Console domain — admin UI + GraphQL API
+# Main domain — admin UI SPA + GraphQL API
 server {
     listen 80;
-    server_name console.hyperpush.org;
-
-    location /graphql {
-        proxy_pass http://hyperpush-app:3000;
-    }
+    server_name hyperpush.org;
 
     location / {
         proxy_pass http://hyperpush-frontend:80;
+    }
+
+    location /graphql {
+        proxy_pass http://hyperpush-app:3000;
     }
 }
 
@@ -332,8 +332,8 @@ server {
 
 **Key details:**
 
-- **Two server blocks, one Nginx container** — `console.*` for the admin UI + GraphQL, `cp.*` for the CodePush server
-- **Path-based routing** — `/graphql` and `/api/*` go to the backend, everything else goes to the frontend SPA
+- **Two server blocks, one Nginx container** — `hyperpush.org` for the admin UI SPA + GraphQL, `cp.hyperpush.org` for the CodePush server
+- **Path-based routing** — `/graphql` and `/api/*` go to the backend, `/` goes to the frontend SPA
 - **Docker DNS resolver** — `resolver 127.0.0.11 valid=10s` prevents 502 errors after container recreation
 - **Hot reload** — Config synced via `appleboy/scp-action`, then reloaded with `nginx -s reload` (no restart)
 - **Large uploads** — `client_max_body_size 500M` for CodePush release file uploads
@@ -354,8 +354,8 @@ graph TB
     end
 
     subgraph Nginx["Nginx Reverse Proxy"]
-        CP["codepush.hyperpush.dev<br/>→ code-push-server:3000"]
-        Console["console.hyperpush.dev<br/>/ → Frontend SPA<br/>/graphql → Backend API"]
+        CP["cp.hyperpush.org<br/>→ code-push-server:3000"]
+        Console["hyperpush.org<br/>/ → Frontend SPA<br/>/graphql → Backend API<br/>/api/* → Backend API"]
     end
 
     subgraph VPS["VPS · Docker Compose"]

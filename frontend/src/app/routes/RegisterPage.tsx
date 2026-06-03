@@ -2,16 +2,16 @@
 // HyperPush — Register Page
 // ==========================================
 
-import { useState } from 'react';
-import { useNavigate, Link } from '@tanstack/react-router';
-import { useForm } from 'react-hook-form';
-import { Card } from '@app/components/ui/Card';
-import { Button } from '@app/components/ui/Button';
 import { useMutation } from '@apollo/client/react';
-import { REGISTER_MUTATION } from '@app/lib/graphql';
+import { Button } from '@app/components/ui/Button';
+import { Card } from '@app/components/ui/Card';
 import { useAppDispatch } from '@app/hooks';
+import { REGISTER_MUTATION } from '@app/lib/graphql';
 import { authSuccess } from '@app/store/slices/authSlice';
 import type { RegisterResponseData } from '@app/types/graphql';
+import { Link, useNavigate } from '@tanstack/react-router';
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
 
 interface RegisterFormData {
   name: string;
@@ -40,7 +40,7 @@ export function RegisterPage() {
     setError(null);
 
     try {
-      const result = await registerMutation({
+      const result = (await registerMutation({
         variables: {
           input: {
             email: data.email,
@@ -48,7 +48,7 @@ export function RegisterPage() {
             name: data.name || undefined,
           },
         },
-      }) as { data?: RegisterResponseData };
+      })) as { data?: RegisterResponseData };
 
       const { accessToken, user } = result.data?.register ?? {};
 
@@ -59,9 +59,7 @@ export function RegisterPage() {
       dispatch(authSuccess({ token: accessToken, user }));
       navigate({ to: '/dashboard' });
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Registration failed',
-      );
+      setError(err instanceof Error ? err.message : 'Registration failed');
     }
   };
 
@@ -70,14 +68,8 @@ export function RegisterPage() {
       <Card padding="lg" className="w-full max-w-md">
         {/* Logo */}
         <div className="mb-8 text-center">
-          <img
-            src="/logo.png"
-            alt="HyperPush"
-            className="mx-auto mb-4 h-16 w-16"
-          />
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            Create Account
-          </h1>
+          <img src="/logo.png" alt="HyperPush" className="mx-auto mb-4 h-16 w-16" />
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Create Account</h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             Sign up for a HyperPush account
           </p>
@@ -124,11 +116,7 @@ export function RegisterPage() {
               className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:border-gray-600 dark:bg-dark-800 dark:text-gray-100"
               {...register('email', { required: 'Email is required' })}
             />
-            {errors.email && (
-              <p className="mt-1 text-xs text-red-500">
-                {errors.email.message}
-              </p>
-            )}
+            {errors.email && <p className="mt-1 text-xs text-red-500">{errors.email.message}</p>}
           </div>
 
           {/* Password */}
@@ -153,9 +141,7 @@ export function RegisterPage() {
               })}
             />
             {errors.password && (
-              <p className="mt-1 text-xs text-red-500">
-                {errors.password.message}
-              </p>
+              <p className="mt-1 text-xs text-red-500">{errors.password.message}</p>
             )}
           </div>
 
@@ -174,25 +160,16 @@ export function RegisterPage() {
               className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:border-gray-600 dark:bg-dark-800 dark:text-gray-100"
               {...register('confirmPassword', {
                 required: 'Please confirm your password',
-                validate: (value) =>
-                  value === password || 'Passwords do not match',
+                validate: (value) => value === password || 'Passwords do not match',
               })}
             />
             {errors.confirmPassword && (
-              <p className="mt-1 text-xs text-red-500">
-                {errors.confirmPassword.message}
-              </p>
+              <p className="mt-1 text-xs text-red-500">{errors.confirmPassword.message}</p>
             )}
           </div>
 
           {/* Submit */}
-          <Button
-            type="submit"
-            variant="primary"
-            size="lg"
-            className="w-full"
-            disabled={loading}
-          >
+          <Button type="submit" variant="primary" size="lg" className="w-full" disabled={loading}>
             {loading ? 'Creating account...' : 'Create Account'}
           </Button>
         </form>

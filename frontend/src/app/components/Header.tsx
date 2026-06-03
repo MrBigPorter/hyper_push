@@ -3,7 +3,7 @@
 // ==========================================
 
 import { useAppSelector } from '@app/hooks';
-import { User, ChevronDown } from 'lucide-react';
+import { ChevronDown, User } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 
 export function Header() {

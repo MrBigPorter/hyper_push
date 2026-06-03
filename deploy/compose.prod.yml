@@ -8,8 +8,8 @@
 #   1. 购买域名并解析 A 记录到服务器 IP
 #   2. 开放防火墙 80/443 端口
 #   3. 设置环境变量:
-#      export CODEPUSH_DOMAIN=codepush.yourdomain.com
-#      export CONSOLE_DOMAIN=console.yourdomain.com
+#      export CODEPUSH_DOMAIN=cp.hyperpush.org
+#      export CONSOLE_DOMAIN=hyperpush.org
 #      export TOKEN_SECRET=$(openssl rand -base64 48 | tr -dc 'A-Za-z0-9' | head -c63)
 #      export JWT_SECRET="your-strong-jwt-secret"
 #      export DATABASE_URL="postgresql://hyperpush:hyperpush123@db:5432/hyperpush"
@@ -23,9 +23,11 @@ services:
     image: nginx:alpine
     container_name: hyperpush-nginx
     restart: unless-stopped
+    # ★ 端口 8080 避免与 Lucky (api.joyminis.com) 的 80/443 冲突
+    #   Cloudflare Proxy (橙色云) 处理 HTTPS 终止
+    #   Cloudflare Origin Rules → 将请求转发到 :8080
     ports:
-      - "80:80"
-      - "443:443"
+      - "8080:80"
     volumes:
       - ./deploy/nginx-hyperpush.conf:/etc/nginx/conf.d/default.conf:ro
       - nginx_cache:/var/cache/nginx

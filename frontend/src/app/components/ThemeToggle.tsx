@@ -3,9 +3,9 @@
 // Sun/Moon icon that dispatches toggleTheme
 // ==========================================
 
-import { Sun, Moon } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '@app/hooks';
 import { toggleTheme } from '@app/store/slices/themeSlice';
+import { Moon, Sun } from 'lucide-react';
 
 export function ThemeToggle() {
   const dispatch = useAppDispatch();

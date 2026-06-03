@@ -3,8 +3,8 @@
 // (纯类型工具，不含 GraphQL)
 // ==========================================
 
+import type { AppDispatch, RootState } from '@app/store';
 import { useDispatch, useSelector } from 'react-redux';
-import type { RootState, AppDispatch } from '@app/store';
 
 /** Typed dispatch hook */
 export const useAppDispatch = useDispatch.withTypes<AppDispatch>();

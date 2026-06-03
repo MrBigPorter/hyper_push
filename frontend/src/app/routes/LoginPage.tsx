@@ -2,27 +2,21 @@
 // HyperPush — Login Page
 // ==========================================
 
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { useNavigate, Link } from '@tanstack/react-router';
-import { useAppDispatch, useAppSelector } from '@app/hooks';
-import { authStart, authSuccess, authFailure } from '@app/store/slices/authSlice';
 import { useMutation } from '@apollo/client/react';
+import { Button, Card, Input } from '@app/components/ui';
+import { useAppDispatch, useAppSelector } from '@app/hooks';
 import { LOGIN_MUTATION } from '@app/lib/graphql';
-import { Input, Button, Card } from '@app/components/ui';
+import { authFailure, authStart, authSuccess } from '@app/store/slices/authSlice';
 import type { AuthResponseData } from '@app/types/graphql';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Link, useNavigate } from '@tanstack/react-router';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
 
 // Zod validation schema
 const loginSchema = z.object({
-  email: z
-    .string()
-    .min(1, 'Please enter your email')
-    .email('Invalid email format'),
-  password: z
-    .string()
-    .min(6, 'Password must be at least 6 characters'),
+  email: z.string().min(1, 'Please enter your email').email('Invalid email format'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
@@ -50,14 +44,14 @@ export function LoginPage() {
     dispatch(authStart());
 
     try {
-      const result = await loginMutation({
+      const result = (await loginMutation({
         variables: {
           input: {
             email: data.email,
             password: data.password,
           },
         },
-      }) as { data?: AuthResponseData };
+      })) as { data?: AuthResponseData };
 
       const { accessToken, user } = result.data?.login ?? {};
 
@@ -68,8 +62,7 @@ export function LoginPage() {
       dispatch(authSuccess({ token: accessToken, user }));
       navigate({ to: '/dashboard' });
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : 'Login failed, please try again';
+      const message = err instanceof Error ? err.message : 'Login failed, please try again';
       dispatch(authFailure(message));
     }
   };
@@ -79,14 +72,8 @@ export function LoginPage() {
       <Card padding="lg" className="w-full max-w-md">
         {/* Logo / Header */}
         <div className="mb-8 text-center">
-          <img
-            src="/logo.png"
-            alt="HyperPush"
-            className="mx-auto mb-4 h-16 w-16"
-          />
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            HyperPush
-          </h1>
+          <img src="/logo.png" alt="HyperPush" className="mx-auto mb-4 h-16 w-16" />
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">HyperPush</h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             CodePush Universal Management Console
           </p>
@@ -122,22 +109,14 @@ export function LoginPage() {
             {...register('password')}
           />
 
-          <Button
-            type="submit"
-            loading={isLoading}
-            className="w-full"
-            size="lg"
-          >
+          <Button type="submit" loading={isLoading} className="w-full" size="lg">
             {isLoading ? 'Signing in...' : 'Sign In'}
           </Button>
         </form>
 
         <p className="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
           Don't have an account?{' '}
-          <Link
-            to="/register"
-            className="text-primary-600 hover:text-primary-500 font-medium"
-          >
+          <Link to="/register" className="text-primary-600 hover:text-primary-500 font-medium">
             Register
           </Link>
         </p>

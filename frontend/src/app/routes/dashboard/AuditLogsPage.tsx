@@ -2,14 +2,14 @@
 // HyperPush — Audit Logs Page
 // ==========================================
 
-import { useState } from 'react';
 import { useQuery } from '@apollo/client/react';
-import { Card, CardHeader, Button } from '@app/components/ui';
-import { ScrollText, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Button, Card, CardHeader } from '@app/components/ui';
 import { GET_AUDIT_LOGS } from '@app/lib/graphql';
-import { Badge } from '@/components/ui/badge';
-import type { AuditLog } from '@app/types/models';
 import type { AuditLogsResponseData } from '@app/types/graphql';
+import type { AuditLog } from '@app/types/models';
+import { ChevronLeft, ChevronRight, ScrollText } from 'lucide-react';
+import { useState } from 'react';
+import { Badge } from '@/components/ui/badge';
 
 const PAGE_SIZE = 50;
 
@@ -101,9 +101,7 @@ export function AuditLogsPage() {
         ) : auditLogs.length === 0 ? (
           <div className="py-16 text-center">
             <ScrollText className="mx-auto h-12 w-12 text-gray-300 dark:text-gray-600" />
-            <p className="mt-4 text-gray-400 dark:text-gray-500">
-              No audit logs yet
-            </p>
+            <p className="mt-4 text-gray-400 dark:text-gray-500">No audit logs yet</p>
           </div>
         ) : (
           <div className="divide-y divide-gray-200 dark:divide-dark-700">

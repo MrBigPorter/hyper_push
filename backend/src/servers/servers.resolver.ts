@@ -1,10 +1,9 @@
-import { Resolver, Query, Mutation, Args, Context } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { ServersService } from './servers.service.js';
-import { CreateServerInput } from '@/servers/dto';
-import { UpdateServerInput } from '@/servers/dto';
-import { ServerModel } from './models/server.model.js';
+import { Args, Context, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { GqlAuthGuard } from '@/auth/guards/gql-auth.guard.js';
+import { CreateServerInput, UpdateServerInput } from '@/servers/dto';
+import { ServerModel } from './models/server.model.js';
+import type { ServersService } from './servers.service.js';
 
 @Resolver(() => ServerModel)
 @UseGuards(GqlAuthGuard)
@@ -17,10 +16,7 @@ export class ServersResolver {
   }
 
   @Query(() => ServerModel, { name: 'server' })
-  async getServer(
-    @Args('id') id: string,
-    @Context() ctx: { req: { user: { sub: string } } },
-  ) {
+  async getServer(@Args('id') id: string, @Context() ctx: { req: { user: { sub: string } } }) {
     return this.serversService.findOne(id, ctx.req.user.sub);
   }
 
@@ -41,10 +37,7 @@ export class ServersResolver {
   }
 
   @Mutation(() => Boolean)
-  async deleteServer(
-    @Args('id') id: string,
-    @Context() ctx: { req: { user: { sub: string } } },
-  ) {
+  async deleteServer(@Args('id') id: string, @Context() ctx: { req: { user: { sub: string } } }) {
     await this.serversService.remove(id, ctx.req.user.sub);
     return true;
   }

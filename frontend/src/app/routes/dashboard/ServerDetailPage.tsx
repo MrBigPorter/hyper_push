@@ -3,24 +3,26 @@
 // Shows username + connection status + Reset Token
 // ==========================================
 
-import { useState } from 'react';
-import { useNavigate, useParams } from '@tanstack/react-router';
-import { useQuery, useMutation } from '@apollo/client/react';
-import {
-  ArrowLeft,
-  Server,
-  User,
-  KeyRound,
-  Calendar,
-  Activity,
-  Edit3,
-  Trash2,
-  Check,
-  X,
-  RotateCcw,
-} from 'lucide-react';
-import { Card } from '@app/components/ui/Card';
+import { useMutation, useQuery } from '@apollo/client/react';
 import { Button } from '@app/components/ui/Button';
+import { Card } from '@app/components/ui/Card';
+import { DELETE_SERVER, GET_SERVER, UPDATE_SERVER } from '@app/lib/graphql';
+import type { Server as ServerModel } from '@app/types/models';
+import { useNavigate, useParams } from '@tanstack/react-router';
+import {
+  Activity,
+  ArrowLeft,
+  Calendar,
+  Check,
+  Edit3,
+  KeyRound,
+  RotateCcw,
+  Server,
+  Trash2,
+  User,
+  X,
+} from 'lucide-react';
+import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
@@ -29,10 +31,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
-import { GET_SERVER, UPDATE_SERVER, DELETE_SERVER } from '@app/lib/graphql';
-import type { Server as ServerModel } from '@app/types/models';
 
 export function ServerDetailPage() {
   const navigate = useNavigate();
@@ -52,7 +51,8 @@ export function ServerDetailPage() {
 
   const [deleteServer] = useMutation(DELETE_SERVER);
 
-  const server: ServerModel | undefined = (data as { getServer?: ServerModel } | undefined)?.getServer;
+  const server: ServerModel | undefined = (data as { getServer?: ServerModel } | undefined)
+    ?.getServer;
 
   const [editForm, setEditForm] = useState({
     name: '',
@@ -163,21 +163,13 @@ export function ServerDetailPage() {
         <div className="flex items-center gap-3">
           <Server className="h-8 w-8 text-primary-600 dark:text-primary-400" />
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              {server.name}
-            </h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Server ID: {params.id}
-            </p>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{server.name}</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Server ID: {params.id}</p>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => setIsEditing(!isEditing)}
-          >
+          <Button variant="secondary" size="sm" onClick={() => setIsEditing(!isEditing)}>
             <Edit3 className="mr-1 h-4 w-4" />
             {isEditing ? 'Cancel' : 'Edit'}
           </Button>
@@ -191,9 +183,8 @@ export function ServerDetailPage() {
               <DialogHeader>
                 <DialogTitle>Delete Server</DialogTitle>
                 <DialogDescription>
-                  Are you sure you want to delete "{server.name}"?
-                  This will also remove all associated CodePush apps and
-                  data. This action cannot be undone.
+                  Are you sure you want to delete "{server.name}"? This will also remove all
+                  associated CodePush apps and data. This action cannot be undone.
                 </DialogDescription>
               </DialogHeader>
               <DialogFooter>
@@ -216,10 +207,7 @@ export function ServerDetailPage() {
           <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
             Server Information
           </h2>
-          <Badge
-            variant={server.isOnline ? 'default' : 'secondary'}
-            className="ml-2"
-          >
+          <Badge variant={server.isOnline ? 'default' : 'secondary'} className="ml-2">
             <span
               className={`mr-1 inline-block h-2 w-2 rounded-full ${
                 server.isOnline ? 'bg-green-500' : 'bg-gray-400'
@@ -232,10 +220,10 @@ export function ServerDetailPage() {
         <div className="mt-6 space-y-4">
           {/* Name */}
           <div className="grid gap-1">
-            <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+            <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
               <Server className="mr-1 inline-block h-4 w-4" />
               Name
-            </label>
+            </span>
             {isEditing ? (
               <input
                 value={editForm.name}
@@ -249,10 +237,10 @@ export function ServerDetailPage() {
 
           {/* Username */}
           <div className="grid gap-1">
-            <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+            <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
               <User className="mr-1 inline-block h-4 w-4" />
               CodePush Username
-            </label>
+            </span>
             {isEditing ? (
               <input
                 value={editForm.username}
@@ -266,10 +254,10 @@ export function ServerDetailPage() {
 
           {/* API Key (read-only) with Reset Token button */}
           <div className="grid gap-1">
-            <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+            <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
               <KeyRound className="mr-1 inline-block h-4 w-4" />
               Access Token
-            </label>
+            </span>
             <div className="flex items-center gap-2">
               <code className="flex-1 rounded bg-gray-100 px-2 py-1 text-sm text-gray-700 dark:bg-dark-800 dark:text-gray-300">
                 {server.apiKey}
@@ -284,8 +272,8 @@ export function ServerDetailPage() {
                   <DialogHeader>
                     <DialogTitle>Reset Access Token</DialogTitle>
                     <DialogDescription>
-                      Enter the CodePush server password to generate a new
-                      access token. The current token will be replaced.
+                      Enter the CodePush server password to generate a new access token. The current
+                      token will be replaced.
                     </DialogDescription>
                   </DialogHeader>
 
@@ -334,23 +322,19 @@ export function ServerDetailPage() {
 
           {/* Dates */}
           <div className="grid gap-1">
-            <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+            <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
               <Calendar className="mr-1 inline-block h-4 w-4" />
               Created
-            </label>
-            <p className="text-gray-900 dark:text-gray-100">
-              {formatDate(server.createdAt)}
-            </p>
+            </span>
+            <p className="text-gray-900 dark:text-gray-100">{formatDate(server.createdAt)}</p>
           </div>
 
           <div className="grid gap-1">
-            <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+            <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
               <Calendar className="mr-1 inline-block h-4 w-4" />
               Last Updated
-            </label>
-            <p className="text-gray-900 dark:text-gray-100">
-              {formatDate(server.updatedAt)}
-            </p>
+            </span>
+            <p className="text-gray-900 dark:text-gray-100">{formatDate(server.updatedAt)}</p>
           </div>
 
           {/* Save Button (Edit Mode) */}

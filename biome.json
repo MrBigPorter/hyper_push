@@ -1,8 +1,5 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.4.15/schema.json",
-  "organizeImports": {
-    "enabled": true
-  },
   "linter": {
     "enabled": true,
     "rules": {
@@ -21,6 +18,9 @@
     "lineWidth": 100
   },
   "javascript": {
+    "parser": {
+      "unsafeParameterDecoratorsEnabled": true
+    },
     "formatter": {
       "quoteStyle": "single",
       "trailingCommas": "all",
@@ -28,6 +28,6 @@
     }
   },
   "files": {
-    "ignore": ["node_modules", "dist", ".next"]
+    "includes": ["backend/src/**/*.ts", "frontend/src/**/*.ts", "frontend/src/**/*.tsx"]
   }
 }

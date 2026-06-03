@@ -2,8 +2,8 @@
 // HyperPush — Button Component
 // ==========================================
 
-import type { ButtonHTMLAttributes, ReactNode } from 'react';
 import clsx from 'clsx';
+import type { ButtonHTMLAttributes, ReactNode } from 'react';
 
 type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost';
 type ButtonSize = 'sm' | 'md' | 'lg';
@@ -20,8 +20,7 @@ const variantStyles: Record<ButtonVariant, string> = {
     'bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500 disabled:bg-primary-400',
   secondary:
     'bg-gray-200 text-gray-800 hover:bg-gray-300 focus:ring-gray-400 dark:bg-dark-700 dark:text-gray-200 dark:hover:bg-dark-600',
-  danger:
-    'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 disabled:bg-red-400',
+  danger: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 disabled:bg-red-400',
   ghost:
     'bg-transparent text-gray-600 hover:bg-gray-100 focus:ring-gray-400 dark:text-gray-400 dark:hover:bg-dark-800',
 };
