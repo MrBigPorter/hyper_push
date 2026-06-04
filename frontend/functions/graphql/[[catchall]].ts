@@ -34,13 +34,15 @@ export async function onRequest(context) {
     const proxyHeaders = new Headers(request.headers);
     // Override host so the backend Nginx matches the correct server_name
     proxyHeaders.set('host', 'hyperpush.org');
-    // Remove headers that cause issues when proxying
-    proxyHeaders.delete('cf-connecting-ip');
+    // Strip browser-originated headers that would cause issues server-to-server
+    proxyHeaders.delete('origin');            // Prevent NestJS CORS from rejecting (origin: false in prod)
+    proxyHeaders.delete('referer');           // Server-side proxy doesn't need browser referrer
+    proxyHeaders.delete('cf-connecting-ip');  // Cloudflare internal headers
     proxyHeaders.delete('cf-ray');
     proxyHeaders.delete('cf-ipcountry');
     proxyHeaders.delete('cf-visitor');
     proxyHeaders.delete('cf-worker');
-    proxyHeaders.delete('x-forwarded-for');
+    proxyHeaders.delete('x-forwarded-for');   // Our Nginx will set fresh values
     proxyHeaders.delete('x-forwarded-proto');
 
     // Forward the request, preserving method, headers, and body
