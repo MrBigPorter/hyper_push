@@ -6,42 +6,27 @@
 #
 # 前置条件:
 #   1. 购买域名并解析 A 记录到服务器 IP
-#   2. 开放防火墙 80/443 端口
+#   2. 开放防火墙 80/443 端口 (Cloudflare 橙云 + Flexible SSL)
 #   3. 设置环境变量:
-#      export CODEPUSH_DOMAIN=cp.hyperpush.org
-#      export CONSOLE_DOMAIN=hyperpush.org
 #      export TOKEN_SECRET=$(openssl rand -base64 48 | tr -dc 'A-Za-z0-9' | head -c63)
 #      export JWT_SECRET="your-strong-jwt-secret"
 #      export DATABASE_URL="postgresql://hyperpush:hyperpush123@db:5432/hyperpush"
 # ==========================================
+# ★ 所有服务统一使用 hyperpush.org 一个域名:
+#   - 管理后台: https://hyperpush.org/
+#   - GraphQL:  https://hyperpush.org/graphql
+#   - API:      https://hyperpush.org/api/
+#   - CodePush: https://hyperpush.org/codepush/
+# ==========================================
 
 services:
   # =========================================
-  # Nginx — 反向代理 (替代 Caddy)
-  # =========================================
-  nginx:
-    image: nginx:alpine
-    container_name: hyperpush-nginx
-    restart: unless-stopped
-    # ★ 端口 8080 避免与 Lucky (api.joyminis.com) 的 80/443 冲突
-    #   Cloudflare Proxy (橙色云) 处理 HTTPS 终止
-    #   Cloudflare Origin Rules → 将请求转发到 :8080
-    ports:
-      - "8080:80"
-    volumes:
-      - ./deploy/nginx-hyperpush.conf:/etc/nginx/conf.d/default.conf:ro
-      - nginx_cache:/var/cache/nginx
-    depends_on:
-      app:
-        condition: service_started
-      codepush:
-        condition: service_started
-    networks:
-      - default
-      - codepush
-
-  # =========================================
   # HyperPush 后端 (生产模式)
+  # =========================================
+  # ★ Nginx 不再需要独立的容器！
+  #   Cloudflare 橙云 + Flexible SSL 直接代理到本服务。
+  #   本服务暴露宿主端口 3002，由 Lucky 的 nginx 统一反向代理。
+  #   详见 deploy/sync-nginx.sh
   # =========================================
   app:
     build:
@@ -51,15 +36,16 @@ services:
     image: hyperpush:latest
     container_name: hyperpush-app
     restart: unless-stopped
-    expose:
-      - "3000"
+    ports:
+      - "3002:3000"
     env_file:
       - .env
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgresql://hyperpush:hyperpush123@db:5432/hyperpush}
       NODE_ENV: production
       JWT_SECRET: ${JWT_SECRET}
-      PUBLIC_URL: https://${CODEPUSH_DOMAIN}
+      # CodePush 管理端入口 (由 Lucky nginx 将 /codepush/ 代理到本服务)
+      PUBLIC_URL: https://hyperpush.org/codepush
     depends_on:
       db:
         condition: service_healthy
@@ -105,8 +91,8 @@ services:
       - DATA_BASE=codepush
       - STORAGE_TYPE=local
       - STORAGE_DIR=/data/storage
-      # ★ 关键: 改为公网下载地址
-      - LOCAL_DOWNLOAD_URL=https://${CODEPUSH_DOMAIN}/download
+      # ★ 公网下载地址 (Lucky nginx /codepush/ → host.docker.internal:3003)
+      - LOCAL_DOWNLOAD_URL=https://hyperpush.org/codepush/download
       - DATA_DIR=/data/tmp
       - TOKEN_SECRET=${TOKEN_SECRET}
       - PORT=3000
@@ -190,7 +176,6 @@ networks:
     driver: bridge
 
 volumes:
-  nginx_cache:
   prisma_client:
   pgdata:
   codepush-mysql-data:
