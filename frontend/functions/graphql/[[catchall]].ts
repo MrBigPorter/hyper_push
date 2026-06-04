@@ -5,8 +5,8 @@
  * The VPS origin URL is stored as a Cloudflare Pages Secret environment
  * variable (API_ORIGIN) to avoid exposing the server IP in source code.
  *
- * Environment variables (set in Cloudflare Dashboard → Secrets):
- *   API_ORIGIN — e.g. "http://129.121.97.120:8080"
+ * Environment variables (set in Cloudflare Dashboard):
+ *   API_ORIGIN — e.g. "xxxxxx:8080"
  */
 
 export async function onRequest(context) {
