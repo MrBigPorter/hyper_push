@@ -54,7 +54,7 @@ export async function onRequest(context) {
 
     // Build response with filtered headers (exclude hop-by-hop headers)
     const responseHeaders = new Headers();
-    const hopByHop = [
+    const hopByHop = new Set([
       'transfer-encoding',
       'connection',
       'keep-alive',
@@ -63,12 +63,12 @@ export async function onRequest(context) {
       'te',
       'trailer',
       'upgrade',
-    ];
-    for (const [key, value] of response.headers) {
-      if (!hopByHop.includes(key.toLowerCase())) {
+    ]);
+    response.headers.forEach((value, key) => {
+      if (!hopByHop.has(key.toLowerCase())) {
         responseHeaders.set(key, value);
       }
-    }
+    });
     // Ensure CORS headers are present
     responseHeaders.set('access-control-allow-origin', '*');
     responseHeaders.set('access-control-allow-methods', 'GET, POST, OPTIONS');

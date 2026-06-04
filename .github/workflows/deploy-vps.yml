@@ -519,46 +519,43 @@ jobs:
             docker compose -f compose.yml -f deploy/compose.prod.yml ps
 
       # ---- 外部验证 ----
-      - name: 🔍 Verify API externally
+      # ★ 注意: hyperpush.org 走的是 Cloudflare Pages，CI 验证时不走公网域名
+      #   改为直连 VPS IP:8080 (HyperPush Nginx)，绕过 Cloudflare
+      - name: 🔍 Verify API externally (via VPS directly)
         id: verify
         continue-on-error: true
-        timeout-minutes: 5
+        timeout-minutes: 3
         env:
-          CONSOLE_URL: https://${{ secrets.CONSOLE_DOMAIN }}
+          VPS_URL: http://${{ secrets.SERVER_IP }}:8080
         run: |
           set -euo pipefail
-          echo "→ Verifying from GitHub runner..."
-          echo "  Target: $CONSOLE_URL"
+          echo "→ Verifying from GitHub runner (direct to VPS)..."
+          echo "  Target: $VPS_URL/graphql"
           echo ""
 
           # GraphQL health with retry
           echo "⏳ Checking GraphQL health endpoint..."
           HEALTHY=false
-          for i in $(seq 1 10); do
-            RESP=$(curl -sS --max-time 15 \
+          for i in $(seq 1 6); do
+            RESP=$(curl -sS --max-time 10 \
               --post-data '{"query":"{_health}"}' \
               --header 'Content-Type: application/json' \
-              "$CONSOLE_URL/graphql" 2>&1) && {
+              --header 'Host: hyperpush.org' \
+              "$VPS_URL/graphql" 2>&1) && {
               echo " ✅ GraphQL health: $(echo "$RESP" | head -c 200)"
               HEALTHY=true
               break
             } || {
-              echo " Attempt $i/10 — not ready yet..."
-              sleep 15
+              echo " Attempt $i/6 — not ready yet..."
+              sleep 10
             }
           done
-
-          if [ "$HEALTHY" != true ]; then
-            echo "⚠️ GraphQL endpoint unreachable after 10 attempts"
-          fi
-          echo ""
 
           if [ "$HEALTHY" = true ]; then
             echo "✅ External verification PASSED"
           else
-            echo "⚠️ External verification failed after retries"
-            echo "  The backend is running fine on the VPS."
-            echo "  Check DNS A record for ${{ secrets.CONSOLE_DOMAIN }} points to VPS IP."
+            echo "⚠️ GraphQL endpoint unreachable after 6 attempts"
+            echo "  Check: docker exec hyperpush-app wget -qO- http://localhost:3000/graphql ..."
             exit 1
           fi
 
@@ -566,15 +563,11 @@ jobs:
         if: steps.verify.outcome == 'failure'
         run: |
           echo "::warning::━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "::warning:: Post-deploy verification from GitHub runner failed."
-          echo "::warning:: This is likely a DNS/TLS configuration issue."
-          echo "::warning:: The containers ARE running and healthy on the VPS."
+          echo "::warning:: Post-deploy verification failed."
+          echo "::warning:: Try SSH:"
+          echo "::warning::   ssh root@${{ secrets.SERVER_IP }} 'docker exec hyperpush-app wget -qO- http://localhost:3000/graphql --post-data=\"{query:{_health}}\" --header=Content-Type:application/json'"
+          echo "::warning::"
+          echo "::warning:: Public URL (via Cloudflare Pages) may take a few minutes to propagate."
+          echo "::warning:: Test manually: curl -X POST https://hyperpush.org/graphql -H 'Content-Type: application/json' -d '{\"query\":\"{_health}\"}'"
           echo "::warning::━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo ""
-          echo "To check manually via SSH:"
-          echo "  ssh root@VPS 'docker ps && docker exec hyperpush-app wget -qO- http://localhost:3000/graphql --post-data=\"{query:{_health}}\" --header=Content-Type:application/json'"
-          echo ""
-          echo "To configure DNS:"
-          echo "  A record (Main): ${{ secrets.CONSOLE_DOMAIN }} → VPS_IP"
-          echo "  A record (CodePush): ${{ secrets.CODEPUSH_DOMAIN }} → VPS_IP"
           echo "  CNAME (Frontend): hyperpush.pages.dev → Cloudflare Pages (or custom domain)"
