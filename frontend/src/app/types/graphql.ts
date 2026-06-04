@@ -3,19 +3,28 @@
 // Matches backend resolver field names
 // ==========================================
 
-import type { ApiKey, AuditLog, PaginationInfo, Server, User } from './models';
+import type { ApiKey, AuditLog, PaginatedUsers, PaginationInfo, Server, User } from './models';
 
 // ─── Auth ───────────────────────────────────────
 
 export interface AuthResponseData {
   login: {
-    accessToken: string;
+    accessToken?: string;
+    requires2fa?: boolean;
+    tempToken?: string;
     user: User;
   };
 }
 
 export interface RegisterResponseData {
   register: {
+    accessToken: string;
+    user: User;
+  };
+}
+
+export interface Verify2faResponseData {
+  verify2fa: {
     accessToken: string;
     user: User;
   };
@@ -34,6 +43,40 @@ export interface UpdateUserResponseData {
   updateUser: User;
 }
 
+// ─── 2FA ────────────────────────────────────────
+
+export interface Setup2faResponseData {
+  setup2fa: string | null;
+}
+
+export interface Enable2faResponseData {
+  enable2fa: boolean;
+}
+
+export interface Disable2faResponseData {
+  disable2fa: boolean;
+}
+
+// ─── Password ───────────────────────────────────
+
+export interface ChangePasswordResponseData {
+  changePassword: boolean;
+}
+
+// ─── Admin ──────────────────────────────────────
+
+export interface ListUsersResponseData {
+  listUsers: PaginatedUsers;
+}
+
+export interface BanUserResponseData {
+  banUser: boolean;
+}
+
+export interface UnbanUserResponseData {
+  unbanUser: boolean;
+}
+
 // ─── Servers ────────────────────────────────────
 
 export interface ServersResponseData {
@@ -41,7 +84,7 @@ export interface ServersResponseData {
 }
 
 export interface ServerResponseData {
-  getServer: Server;
+  server: Server;
 }
 
 export interface CreateServerInput {
@@ -67,7 +110,7 @@ export interface UpdateServerResponseData {
 }
 
 export interface DeleteServerResponseData {
-  deleteServer: Server;
+  deleteServer: boolean;
 }
 
 // ─── API Keys ───────────────────────────────────
@@ -85,7 +128,7 @@ export interface CreateApiKeyResponseData {
 }
 
 export interface DeleteApiKeyResponseData {
-  deleteApiKey: ApiKey;
+  deleteApiKey: boolean;
 }
 
 // ─── Audit Logs ─────────────────────────────────
@@ -116,8 +159,4 @@ export interface CodepushDeploymentsResponseData {
 
 export interface CodepushReleaseHistoryResponseData {
   codepushReleaseHistory: Record<string, unknown>[];
-}
-
-export interface CodepushAccessKeysResponseData {
-  codepushAccessKeys: Record<string, unknown>[];
 }

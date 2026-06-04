@@ -39,8 +39,16 @@ type AuditLogListResponse {
 }
 
 type Auth {
-  accessToken: String!
+  accessToken: String
+  requires2fa: Boolean
+  tempToken: String
   user: User!
+}
+
+input ChangePasswordInput {
+  currentPassword: String!
+  newPassword: String!
+  totpToken: String
 }
 
 input CreateAccessKeyInput {
@@ -92,6 +100,8 @@ input LoginInput {
 
 type Mutation {
   addCodepushCollaborator(appName: String!, email: String!, serverId: String!): JSON!
+  banUser(userId: String!, reason: String): Boolean!
+  changePassword(input: ChangePasswordInput!): Boolean!
   clearCodepushDeploymentHistory(appName: String!, deploymentName: String!, serverId: String!): Boolean!
   codepushLogin(account: String!, password: String!, serverId: String!): JSON!
   codepushLogout(serverId: String!): JSON!
@@ -106,17 +116,29 @@ type Mutation {
   deleteCodepushApp(appName: String!, serverId: String!): Boolean!
   deleteCodepushDeployment(appName: String!, deploymentName: String!, serverId: String!): Boolean!
   deleteServer(id: String!): Boolean!
+  disable2fa(password: String!, token: String): Boolean!
+  enable2fa(token: String!): Boolean!
   login(input: LoginInput!): Auth!
   promoteCodepushRelease(input: PromoteReleaseInput!): JSON!
   register(input: RegisterInput!): Auth!
   removeCodepushCollaborator(appName: String!, email: String!, serverId: String!): Boolean!
   rollbackCodepushRelease(appName: String!, deploymentName: String!, label: String, serverId: String!): JSON!
+  setup2fa: String
   transferCodepushApp(appName: String!, email: String!, serverId: String!): JSON!
+  unbanUser(userId: String!): Boolean!
   updateCodepushApp(input: UpdateAppInput!): JSON!
   updateCodepushDeployment(input: UpdateDeploymentInput!): JSON!
   updateCodepushRelease(input: UpdateReleaseInput!): JSON!
   updateServer(input: UpdateServerInput!): Server!
-  updateUser(input: UpdateUserInput!): User!
+  updateUser(input: UpdateUserInput!): Boolean!
+  verify2fa(input: Verify2faInput!): Auth!
+}
+
+type PaginatedUsers {
+  items: [User!]!
+  total: Int!
+  page: Int!
+  limit: Int!
 }
 
 type PaginationInfo {
@@ -150,6 +172,7 @@ type Query {
   getApiKeys: [ApiKey!]!
   getAuditLogs(filter: AuditLogFilterInput): AuditLogListResponse!
   getServers: [Server!]!
+  listUsers(limit: Int, page: Int, search: String, sortBy: String, sortOrder: String): PaginatedUsers!
   me: User!
   server(id: String!): Server!
 }
@@ -210,10 +233,20 @@ input UpdateUserInput {
 }
 
 type User {
+  banned: Boolean!
+  bannedAt: DateTime
+  bannedReason: String
   createdAt: DateTime!
   email: String!
   id: ID!
+  lastLoginAt: DateTime
   name: String
   role: String!
+  totpEnabled: Boolean!
   updatedAt: DateTime!
+}
+
+input Verify2faInput {
+  tempToken: String!
+  token: String!
 }

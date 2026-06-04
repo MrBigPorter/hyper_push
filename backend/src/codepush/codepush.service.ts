@@ -142,22 +142,33 @@ export class CodepushService {
 
   /** GET /accessKeys */
   async listAccessKeys(serverId: string): Promise<unknown> {
-    return this.fetchWithAuth(serverId, 'GET', '/accessKeys');
+    const result = await this.fetchWithAuth(serverId, 'GET', '/accessKeys');
+    // CodePush server returns { accessKeys: [...] } — extract the array
+    if (
+      result &&
+      typeof result === 'object' &&
+      'accessKeys' in (result as Record<string, unknown>)
+    ) {
+      return (result as Record<string, unknown>).accessKeys;
+    }
+    return result;
   }
 
-  /** POST /accessKeys — requires { createdBy, friendlyName, ttl?, description? } */
+  /** POST /accessKeys — requires { createdBy, friendlyName, description? } */
   async createAccessKey(
     serverId: string,
     friendlyName: string,
     createdBy?: string,
-    ttl?: number,
+    _ttl?: number,
     description?: string,
   ): Promise<unknown> {
     const body: Record<string, unknown> = {
       createdBy: createdBy || 'hyperpush',
       friendlyName,
     };
-    if (ttl !== undefined) body.ttl = ttl;
+    // NOTE: code-push-server does NOT accept `ttl` in the request body
+    // (class-validator whitelist rejects unknown properties).
+    // TTL is configured server-side via `config.accessKeyTTL` or defaults.
     if (description !== undefined) body.description = description;
 
     return this.fetchWithAuth(serverId, 'POST', '/accessKeys', body);
@@ -172,12 +183,23 @@ export class CodepushService {
 
   /** GET /apps */
   async listApps(serverId: string): Promise<unknown> {
-    return this.fetchWithAuth(serverId, 'GET', '/apps');
+    const result = await this.fetchWithAuth(serverId, 'GET', '/apps');
+    // CodePush server returns { apps: [...] } — extract the array
+    if (result && typeof result === 'object' && 'apps' in (result as Record<string, unknown>)) {
+      return (result as Record<string, unknown>).apps;
+    }
+    return result;
   }
 
   /** POST /apps — requires { name, os, platform } */
   async createApp(serverId: string, name: string, os: string, platform: string): Promise<unknown> {
-    return this.fetchWithAuth(serverId, 'POST', '/apps', { name, os, platform });
+    // Normalize platform name: "React Native" → "React-Native" (CodePush server expects hyphenated format)
+    const normalizedPlatform = platform.replace(/ /g, '-');
+    return this.fetchWithAuth(serverId, 'POST', '/apps', {
+      name,
+      os,
+      platform: normalizedPlatform,
+    });
   }
 
   /** PATCH /apps/:appName — rename an app */
@@ -232,7 +254,20 @@ export class CodepushService {
 
   /** GET /apps/:appName/deployments */
   async listDeployments(serverId: string, appName: string): Promise<unknown> {
-    return this.fetchWithAuth(serverId, 'GET', `/apps/${encodeURIComponent(appName)}/deployments`);
+    const result = await this.fetchWithAuth(
+      serverId,
+      'GET',
+      `/apps/${encodeURIComponent(appName)}/deployments`,
+    );
+    // CodePush server returns { deployments: [...] } — extract the array
+    if (
+      result &&
+      typeof result === 'object' &&
+      'deployments' in (result as Record<string, unknown>)
+    ) {
+      return (result as Record<string, unknown>).deployments;
+    }
+    return result;
   }
 
   /** GET /apps/:appName/deployments/:deploymentName */
@@ -293,11 +328,16 @@ export class CodepushService {
     appName: string,
     deploymentName: string,
   ): Promise<unknown> {
-    return this.fetchWithAuth(
+    const result = await this.fetchWithAuth(
       serverId,
       'GET',
       `/apps/${encodeURIComponent(appName)}/deployments/${encodeURIComponent(deploymentName)}/history`,
     );
+    // CodePush server returns { history: [...] } — extract the array
+    if (result && typeof result === 'object' && 'history' in (result as Record<string, unknown>)) {
+      return (result as Record<string, unknown>).history;
+    }
+    return result;
   }
 
   /**

@@ -23,12 +23,41 @@ services:
     volumes:
       - ./backend/src:/app/src
       - ./backend/prisma:/app/prisma
+      - ./backend/prisma.config.ts:/app/prisma.config.ts
       - ./backend/package.json:/app/package.json
       - ./backend/bun.lock:/app/bun.lock
       - ./backend/tsconfig.json:/app/tsconfig.json
       - ./backend/tsconfig.build.json:/app/tsconfig.build.json
       - ./backend/nest-cli.json:/app/nest-cli.json
       - prisma_client:/app/node_modules/.prisma
-    # NestJS 的 nest build --watch 会监听 src/ 文件变化
-    # 修改 .ts 文件后自动重新编译并重启
+
+  # =========================================
+  # 前端 — 开发模式（Vite HMR 热更新）
+  # =========================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: dev
+    image: hyperpush-frontend:latest
+    container_name: hyperpush-frontend
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    environment:
+      # Docker 内部通过 service name "app" 访问后端
+      VITE_API_PROXY: http://app:3000
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/index.html:/app/index.html
+      - ./frontend/vite.config.ts:/app/vite.config.ts
+      - ./frontend/package.json:/app/package.json
+      - ./frontend/bun.lock:/app/bun.lock
+      - ./frontend/tsconfig.json:/app/tsconfig.json
+      - ./frontend/tsconfig.node.json:/app/tsconfig.node.json
+    depends_on:
+      app:
+        condition: service_started
+    networks:
+      - default
 

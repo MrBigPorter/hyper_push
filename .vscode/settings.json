@@ -1,0 +1,4 @@
+{
+  "sqltools.dialect": "MySQL",
+  "prisma.dialect": "postgresql"
+}

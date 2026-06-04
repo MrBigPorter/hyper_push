@@ -1,3 +1,4 @@
+import { UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { GraphQLJSON } from 'graphql-type-json';
 import {
@@ -9,8 +10,10 @@ import {
   UpdateDeploymentInput,
   UpdateReleaseInput,
 } from '@/codepush/dto';
+import { GqlAuthGuard } from '../auth/guards/gql-auth.guard.js';
 import { CodepushService } from './codepush.service.js';
 
+@UseGuards(GqlAuthGuard)
 @Resolver()
 export class CodepushResolver {
   constructor(private readonly codepushService: CodepushService) {}

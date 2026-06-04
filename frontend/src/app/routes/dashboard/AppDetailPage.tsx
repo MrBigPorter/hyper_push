@@ -1,19 +1,18 @@
 // ==========================================
 // HyperPush — App Detail Page
-// Tabs: Deployments / Releases / Access Keys
+// Tabs: Deployments / Releases
 // ==========================================
 
-import { useQuery } from '@apollo/client/react';
+import { useMutation, useQuery } from '@apollo/client/react';
 import { Button } from '@app/components/ui/Button';
 import { Card } from '@app/components/ui/Card';
 import {
-  CODEPUSH_ACCESS_KEYS,
   CODEPUSH_APPS,
   CODEPUSH_DEPLOYMENTS,
   CODEPUSH_RELEASE_HISTORY,
 } from '@app/lib/graphql';
 import { useNavigate, useParams } from '@tanstack/react-router';
-import { ArrowLeft, KeyRound, Layers, Package, RotateCcw, Smartphone } from 'lucide-react';
+import { ArrowLeft, Copy, Layers, Package, RotateCcw, Smartphone } from 'lucide-react';
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -25,10 +24,6 @@ function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
-}
-
-function _isObject(val: unknown): val is Record<string, unknown> {
-  return typeof val === 'object' && val !== null;
 }
 
 // ─── Component ───────────────────────────────
@@ -117,10 +112,6 @@ function AppDetailCard({
     skip: !activeDeployment,
   });
 
-  const { data: accessKeysData, loading: keysLoading } = useQuery(CODEPUSH_ACCESS_KEYS, {
-    variables: { serverId },
-  });
-
   const deployments = (
     Array.isArray((deploymentsData as Record<string, unknown>)?.codepushDeployments)
       ? (deploymentsData as Record<string, unknown>).codepushDeployments
@@ -133,17 +124,11 @@ function AppDetailCard({
       : []
   ) as Record<string, unknown>[];
 
-  const accessKeys = (
-    Array.isArray((accessKeysData as Record<string, unknown>)?.codepushAccessKeys)
-      ? (accessKeysData as Record<string, unknown>).codepushAccessKeys
-      : []
-  ) as Record<string, unknown>[];
-
   return (
     <div className="space-y-6">
       {/* App Header */}
       <div className="flex items-center gap-3">
-        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-primary-700">
+        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-br from-primary-500 to-primary-700">
           <Smartphone className="h-6 w-6 text-white" />
         </div>
         <div>
@@ -163,10 +148,6 @@ function AppDetailCard({
             <Package className="mr-2 h-4 w-4" />
             Releases
           </TabsTrigger>
-          <TabsTrigger value="access-keys">
-            <KeyRound className="mr-2 h-4 w-4" />
-            Access Keys
-          </TabsTrigger>
         </TabsList>
 
         {/* Deployments Tab */}
@@ -181,31 +162,49 @@ function AppDetailCard({
               <p className="py-8 text-center text-sm text-gray-400">No deployments yet.</p>
             ) : (
               <div className="space-y-4">
-                {deployments.map((dep: Record<string, unknown>, idx: number) => (
-                  <div
-                    key={String(dep.name ?? idx)}
-                    className="flex items-center justify-between rounded-lg border border-gray-200 p-4 dark:border-dark-700"
-                  >
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-gray-900 dark:text-gray-100">
-                          {String(dep.name ?? '')}
-                        </span>
-                        <Badge variant="secondary" className="text-xs">
-                          {String(dep.name ?? '') === 'Production' ? 'Live' : 'Testing'}
-                        </Badge>
-                      </div>
-                    </div>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => onSetActiveDeployment(String(dep.name ?? ''))}
+                {deployments.map((dep: Record<string, unknown>, idx: number) => {
+                  const depKey = String(dep.key ?? '');
+                  return (
+                    <div
+                      key={String(dep.name ?? idx)}
+                      className="rounded-lg border border-gray-200 p-4 dark:border-dark-700"
                     >
-                      <Package className="mr-1 h-4 w-4" />
-                      View Releases
-                    </Button>
-                  </div>
-                ))}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-gray-900 dark:text-gray-100">
+                            {String(dep.name ?? '')}
+                          </span>
+                          <Badge variant="secondary" className="text-xs">
+                            {String(dep.name ?? '') === 'Production' ? 'Live' : 'Testing'}
+                          </Badge>
+                        </div>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => onSetActiveDeployment(String(dep.name ?? ''))}
+                        >
+                          <Package className="mr-1 h-4 w-4" />
+                          View Releases
+                        </Button>
+                      </div>
+                      {depKey && (
+                        <div className="mt-2 flex items-center gap-2">
+                          <code className="flex-1 truncate rounded bg-gray-100 px-2 py-1 text-xs font-mono text-gray-600 dark:bg-dark-800 dark:text-gray-400">
+                            {depKey}
+                          </code>
+                          <button
+                            type="button"
+                            onClick={() => navigator.clipboard.writeText(depKey)}
+                            className="shrink-0 rounded p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:text-gray-300 dark:hover:bg-dark-700"
+                            title="Copy deployment key"
+                          >
+                            <Copy className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </Card>
@@ -323,49 +322,6 @@ function AppDetailCard({
           </Card>
         </TabsContent>
 
-        {/* Access Keys Tab */}
-        <TabsContent value="access-keys" className="mt-4">
-          <Card padding="lg">
-            {keysLoading ? (
-              <div className="space-y-4">
-                <Skeleton className="h-12 w-full" />
-                <Skeleton className="h-12 w-full" />
-              </div>
-            ) : accessKeys.length === 0 ? (
-              <p className="py-8 text-center text-sm text-gray-400">No access keys yet.</p>
-            ) : (
-              <div className="space-y-4">
-                {accessKeys.map((key: Record<string, unknown>, idx: number) => (
-                  <div
-                    key={String(key.name ?? idx)}
-                    className="flex items-center justify-between rounded-lg border border-gray-200 p-4 dark:border-dark-700"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-gray-900 dark:text-gray-100">
-                          {String(key.friendlyName ?? key.name ?? '')}
-                        </span>
-                        <Badge variant="default" className="text-xs">
-                          {String(key.keyType ?? 'deployment')}
-                        </Badge>
-                      </div>
-                      <code className="mt-1 block text-xs text-gray-500 dark:text-gray-400">
-                        {String(key.key ?? '')}
-                      </code>
-                      {!!key.createdAt && (
-                        <p className="mt-1 text-xs text-gray-400">
-                          Created {new Date(String(key.createdAt)).toLocaleDateString()}
-                          {!!key.expiresAt &&
-                            ` · Expires ${new Date(String(key.expiresAt)).toLocaleDateString()}`}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </Card>
-        </TabsContent>
       </Tabs>
     </div>
   );

@@ -18,10 +18,16 @@ export interface RegisterInput {
   name?: string;
 }
 
-/** Auth 响应 (login / register) */
+/** Auth 响应 (login / register / verify2fa) */
 export interface AuthResponse {
-  token: string;
-  user: User;
+  /** Full JWT token (null during 2FA step) */
+  token?: string;
+  /** Current user */
+  user?: User;
+  /** Whether 2FA verification is required (after password login) */
+  requires2fa?: boolean;
+  /** Temporary token for 2FA verification step */
+  tempToken?: string;
 }
 
 /** Auth 状态 */
@@ -30,6 +36,10 @@ export interface AuthState {
   token: string | null;
   /** 当前用户 */
   user: User | null;
+  /** 2FA verification required (after password login) */
+  requires2fa: boolean;
+  /** Temporary token for 2FA verification step */
+  tempToken: string | null;
   /** 是否已加载过认证状态 */
   isLoaded: boolean;
   /** 认证进行中 */

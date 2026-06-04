@@ -18,6 +18,8 @@ function loadToken(): string | null {
 const initialState: AuthState = {
   token: loadToken(),
   user: null,
+  requires2fa: false,
+  tempToken: null,
   // Token is loaded synchronously from localStorage, no async check needed
   isLoaded: true,
   isLoading: false,
@@ -38,10 +40,22 @@ const authSlice = createSlice({
     authSuccess(state, action: PayloadAction<{ token: string; user: User }>) {
       state.token = action.payload.token;
       state.user = action.payload.user;
+      state.requires2fa = false;
+      state.tempToken = null;
       state.isLoading = false;
       state.isLoaded = true;
       state.error = null;
       localStorage.setItem(AUTH_TOKEN_KEY, action.payload.token);
+    },
+
+    /** 2FA 需要验证 (密码正确但需 TOTP) */
+    setRequires2fa(state, action: PayloadAction<{ tempToken: string; user: User }>) {
+      state.token = null;
+      state.user = action.payload.user;
+      state.requires2fa = true;
+      state.tempToken = action.payload.tempToken;
+      state.isLoading = false;
+      state.error = null;
     },
 
     /** 登录/注册失败 */
@@ -60,6 +74,8 @@ const authSlice = createSlice({
     logout(state) {
       state.token = null;
       state.user = null;
+      state.requires2fa = false;
+      state.tempToken = null;
       state.isLoaded = true;
       state.isLoading = false;
       state.error = null;
@@ -73,7 +89,7 @@ const authSlice = createSlice({
   },
 });
 
-export const { authStart, authSuccess, authFailure, setUser, logout, clearError } =
+export const { authStart, authSuccess, authFailure, setUser, logout, clearError, setRequires2fa } =
   authSlice.actions;
 
 export default authSlice.reducer;

@@ -1,15 +1,16 @@
 // ==========================================
 // HyperPush — Servers Management Page
-// Create Server with username/password auth
+// Create Server with current user email / password auth
 // ==========================================
 
 import { useMutation, useQuery } from '@apollo/client/react';
 import { Button, Card, CardHeader } from '@app/components/ui';
+import { useAppSelector } from '@app/hooks/useAppStore';
 import { CREATE_SERVER, DELETE_SERVER, GET_SERVERS } from '@app/lib/graphql';
 import type { ServersResponseData } from '@app/types/graphql';
 import type { Server as ServerModel } from '@app/types/models';
 import { useNavigate } from '@tanstack/react-router';
-import { KeyRound, Plus, Server, User } from 'lucide-react';
+import { KeyRound, Mail, Plus, Server } from 'lucide-react';
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -23,16 +24,15 @@ import {
 
 interface CreateServerForm {
   name: string;
-  username: string;
   password: string;
 }
 
 export function ServersPage() {
   const navigate = useNavigate();
+  const currentUserEmail = useAppSelector((state) => state.auth.user?.email ?? '');
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<CreateServerForm>({
     name: '',
-    username: '',
     password: '',
   });
 
@@ -52,13 +52,13 @@ export function ServersPage() {
         variables: {
           input: {
             name: form.name,
-            username: form.username,
+            username: currentUserEmail,
             password: form.password,
           },
         },
       });
       setOpen(false);
-      setForm({ name: '', username: '', password: '' });
+      setForm({ name: '', password: '' });
     } catch (err) {
       console.error('Failed to create server:', err);
     }
@@ -76,7 +76,7 @@ export function ServersPage() {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  const isFormValid = form.name.trim() && form.username.trim() && form.password.trim();
+  const isFormValid = form.name.trim() && form.password.trim();
 
   return (
     <div className="space-y-6">
@@ -93,8 +93,9 @@ export function ServersPage() {
               <DialogHeader>
                 <DialogTitle>Add CodePush Server</DialogTitle>
                 <DialogDescription>
-                  Enter the server details and your CodePush login credentials. The password is used
-                  once to obtain an access token and is not stored.
+                  Enter a name for this server and your CodePush password. The email is auto-filled
+                  from your account. The password is used once to obtain an access token and is not
+                  stored.
                 </DialogDescription>
               </DialogHeader>
 
@@ -117,22 +118,22 @@ export function ServersPage() {
                   />
                 </div>
 
-                {/* Username */}
+                {/* Email (auto-filled from current user) */}
                 <div>
                   <label
-                    htmlFor="server-username"
+                    htmlFor="server-email"
                     className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
                   >
-                    <User className="mr-1 inline-block h-4 w-4" />
-                    CodePush Username
+                    <Mail className="mr-1 inline-block h-4 w-4" />
+                    CodePush Email
                   </label>
-                  <input
-                    id="server-username"
-                    placeholder="admin@example.com"
-                    value={form.username}
-                    onChange={(e) => updateField('username', e.target.value)}
-                    className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:border-gray-600 dark:bg-dark-800 dark:text-gray-100"
-                  />
+                  <div
+                    id="server-email"
+                    className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-500 dark:border-gray-600 dark:bg-dark-800 dark:text-gray-400"
+                  >
+                    <Mail className="h-4 w-4" />
+                    <span>{currentUserEmail}</span>
+                  </div>
                 </div>
 
                 {/* Password */}
@@ -163,7 +164,7 @@ export function ServersPage() {
                   variant="ghost"
                   onClick={() => {
                     setOpen(false);
-                    setForm({ name: '', username: '', password: '' });
+                    setForm({ name: '', password: '' });
                   }}
                 >
                   Cancel
@@ -224,16 +225,23 @@ export function ServersPage() {
                   <Badge variant={server.isOnline ? 'default' : 'secondary'}>
                     {server.isOnline ? 'Online' : 'Offline'}
                   </Badge>
-                  <button
-                    type="button"
+                  <span
                     onClick={(e) => {
                       e.stopPropagation();
                       handleDelete(server.id);
                     }}
-                    className="text-sm text-red-500 hover:text-red-700"
+                    className="cursor-pointer text-sm text-red-500 hover:text-red-700"
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.stopPropagation();
+                        handleDelete(server.id);
+                      }
+                    }}
                   >
                     Delete
-                  </button>
+                  </span>
                 </div>
               </button>
             ))}

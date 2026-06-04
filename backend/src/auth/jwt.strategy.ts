@@ -18,6 +18,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     if (!user) {
       throw new UnauthorizedException('User not found');
     }
+    // Block banned users at the JWT level
+    if (user.banned) {
+      throw new UnauthorizedException('Account is banned');
+    }
     return { sub: payload.sub, email: payload.email, role: payload.role };
   }
 }

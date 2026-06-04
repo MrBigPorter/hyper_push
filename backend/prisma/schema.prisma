@@ -16,9 +16,40 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // === 2FA (Google Authenticator / TOTP) ===
+  totpSecret     String?   // encrypted TOTP secret (AES-256)
+  totpEnabled    Boolean   @default(false)
+
+  // === Ban / Block ===
+  banned         Boolean   @default(false)
+  bannedAt       DateTime?
+  bannedReason   String?
+
+  // === Login tracking ===
+  lastLoginAt    DateTime?
+  lastLoginIp    String?
+  loginAttempts  Int       @default(0)
+  lockoutUntil   DateTime?
+
+  // Relations
   servers    Server[]
   apiKeys    ApiKey[]
   auditLogs  AuditLog[]
+  loginLogs  LoginLog[]
+}
+
+model LoginLog {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  ip         String
+  userAgent  String?
+  success    Boolean  @default(true)
+  failReason String?
+  createdAt  DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([ip, createdAt])
 }
 
 model Server {

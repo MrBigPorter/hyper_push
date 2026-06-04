@@ -3,6 +3,7 @@ import { MulterModule } from '@nestjs/platform-express';
 import { CodepushController } from './codepush.controller.js';
 import { CodepushResolver } from './codepush.resolver.js';
 import { CodepushService } from './codepush.service.js';
+import { CodepushDbService } from './codepush-db.service.js';
 
 @Module({
   imports: [
@@ -12,8 +13,8 @@ import { CodepushService } from './codepush.service.js';
       },
     }),
   ],
-  providers: [CodepushService, CodepushResolver],
+  providers: [CodepushService, CodepushResolver, CodepushDbService],
   controllers: [CodepushController],
-  exports: [CodepushService],
+  exports: [CodepushService, CodepushDbService],
 })
 export class CodepushModule {}

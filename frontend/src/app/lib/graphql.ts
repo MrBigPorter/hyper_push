@@ -6,11 +6,16 @@ export const LOGIN_MUTATION = gql`
   mutation login($input: LoginInput!) {
     login(input: $input) {
       accessToken
+      requires2fa
+      tempToken
       user {
         id
         email
         name
         role
+        totpEnabled
+        banned
+        lastLoginAt
         createdAt
         updatedAt
       }
@@ -27,6 +32,9 @@ export const REGISTER_MUTATION = gql`
         email
         name
         role
+        totpEnabled
+        banned
+        lastLoginAt
         createdAt
         updatedAt
       }
@@ -41,6 +49,9 @@ export const UPDATE_USER_MUTATION = gql`
       email
       name
       role
+      totpEnabled
+      banned
+      lastLoginAt
       createdAt
       updatedAt
     }
@@ -54,6 +65,11 @@ export const ME_QUERY = gql`
       email
       name
       role
+      totpEnabled
+      banned
+      bannedAt
+      bannedReason
+      lastLoginAt
       createdAt
       updatedAt
     }
@@ -292,5 +308,89 @@ export const CREATE_CODEPUSH_ACCESS_KEY = gql`
 export const DELETE_CODEPUSH_ACCESS_KEY = gql`
   mutation deleteCodepushAccessKey($serverId: String!, $name: String!) {
     deleteCodepushAccessKey(serverId: $serverId, name: $name)
+  }
+`;
+
+// ─── 2FA ────────────────────────────────────────────────
+
+export const VERIFY_2FA_MUTATION = gql`
+  mutation verify2fa($input: Verify2faInput!) {
+    verify2fa(input: $input) {
+      accessToken
+      user {
+        id
+        email
+        name
+        role
+        totpEnabled
+        banned
+        lastLoginAt
+        createdAt
+        updatedAt
+      }
+    }
+  }
+`;
+
+export const SETUP_2FA_MUTATION = gql`
+  mutation setup2fa {
+    setup2fa
+  }
+`;
+
+export const ENABLE_2FA_MUTATION = gql`
+  mutation enable2fa($token: String!) {
+    enable2fa(token: $token)
+  }
+`;
+
+export const DISABLE_2FA_MUTATION = gql`
+  mutation disable2fa($password: String!, $token: String) {
+    disable2fa(password: $password, token: $token)
+  }
+`;
+
+// ─── Password ───────────────────────────────────────────
+
+export const CHANGE_PASSWORD_MUTATION = gql`
+  mutation changePassword($input: ChangePasswordInput!) {
+    changePassword(input: $input)
+  }
+`;
+
+// ─── Admin ──────────────────────────────────────────────
+
+export const LIST_USERS_QUERY = gql`
+  query listUsers($page: Int, $limit: Int, $search: String, $sortBy: String, $sortOrder: String) {
+    listUsers(page: $page, limit: $limit, search: $search, sortBy: $sortBy, sortOrder: $sortOrder) {
+      items {
+        id
+        email
+        name
+        role
+        totpEnabled
+        banned
+        bannedAt
+        bannedReason
+        lastLoginAt
+        createdAt
+        updatedAt
+      }
+      total
+      page
+      limit
+    }
+  }
+`;
+
+export const BAN_USER_MUTATION = gql`
+  mutation banUser($userId: String!, $reason: String) {
+    banUser(userId: $userId, reason: $reason)
+  }
+`;
+
+export const UNBAN_USER_MUTATION = gql`
+  mutation unbanUser($userId: String!) {
+    unbanUser(userId: $userId)
   }
 `;

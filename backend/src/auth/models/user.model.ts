@@ -19,4 +19,21 @@ export class UserModel {
 
   @Field()
   updatedAt!: Date;
+
+  // === NEW FIELDS ===
+
+  @Field()
+  totpEnabled!: boolean;
+
+  @Field({ nullable: true })
+  lastLoginAt?: Date;
+
+  @Field()
+  banned!: boolean;
+
+  @Field({ nullable: true })
+  bannedAt?: Date;
+
+  @Field({ nullable: true })
+  bannedReason?: string;
 }

@@ -16,6 +16,11 @@ export interface User {
   email: string;
   name: string | null;
   role: UserRole;
+  totpEnabled: boolean;
+  lastLoginAt: string | null;
+  banned: boolean;
+  bannedAt: string | null;
+  bannedReason: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -136,6 +141,14 @@ export interface PaginationInfo {
   page: number;
   pageSize: number;
   totalPages: number;
+}
+
+/** 分页用户列表 (admin) */
+export interface PaginatedUsers {
+  items: User[];
+  total: number;
+  page: number;
+  limit: number;
 }
 
 /** 分页查询输入 */

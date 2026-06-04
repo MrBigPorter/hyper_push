@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import type { CreateServerInput, UpdateServerInput } from '@/servers/dto';
+import { CodepushDbService } from '../codepush/codepush-db.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 /** Internal Docker network address for the codepush service */
@@ -15,7 +16,10 @@ interface CodePushAuthResponse {
 
 @Injectable()
 export class ServersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly codepushDb: CodepushDbService,
+  ) {}
 
   async findAll(userId: string) {
     return this.prisma.server.findMany({
@@ -35,8 +39,19 @@ export class ServersService {
   }
 
   async create(input: CreateServerInput, userId: string) {
-    // Login to CodePush server (POST /auth/login) to obtain JWT token
-    const jwtToken = await this.loginToCodePush(input.username, input.password);
+    // Login to CodePush server (POST /auth/login) to obtain JWT token.
+    // If login fails (account may not exist yet), try registering first
+    // via direct MySQL insert (code-push-server v5.7.1 has no
+    // /auth/register endpoint), then retry login.
+    let jwtToken: string;
+    try {
+      jwtToken = await this.loginToCodePush(input.username, input.password);
+    } catch {
+      // User may not exist in code-push-server's MySQL yet.
+      // Insert directly into MySQL (bypasses broken /auth/register).
+      await this.codepushDb.ensureUser(input.username, input.password);
+      jwtToken = await this.loginToCodePush(input.username, input.password);
+    }
 
     return this.prisma.server.create({
       data: {

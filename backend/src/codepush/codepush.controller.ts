@@ -5,8 +5,10 @@ import {
   Param,
   Post,
   UploadedFile,
+  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CodepushService } from './codepush.service.js';
 
@@ -27,6 +29,7 @@ interface MulterFile {
  * GraphQL cannot handle file uploads natively, so we expose a REST endpoint
  * that the frontend calls with FormData (zip file + metadata).
  */
+@UseGuards(AuthGuard('jwt'))
 @Controller('codepush')
 export class CodepushController {
   constructor(private readonly codepushService: CodepushService) {}

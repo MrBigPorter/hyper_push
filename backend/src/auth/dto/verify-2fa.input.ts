@@ -1,17 +1,13 @@
 import { Field, InputType } from '@nestjs/graphql';
 import { IsString } from 'class-validator';
 
-@InputType()
-export class UpdateAppInput {
+@InputType('Verify2faInput')
+export class Verify2faInput {
   @Field()
   @IsString()
-  serverId!: string;
+  token!: string;
 
   @Field()
   @IsString()
-  appName!: string;
-
-  @Field()
-  @IsString()
-  newName!: string;
+  tempToken!: string;
 }

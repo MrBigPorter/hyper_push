@@ -29,7 +29,7 @@ import {
 
 const OS_OPTIONS = ['iOS', 'Android'] as const;
 const PLATFORM_OPTIONS = [
-  'React Native',
+  'React-Native',
   'Cordova',
   'Unity',
   'Flutter',
