@@ -161,8 +161,8 @@ services:
       # ── 本地文件存储 ──
       - STORAGE_TYPE=local
       - STORAGE_DIR=/data/storage
-      # ★ 公网下载地址 — Lucky nginx 将 hyperpush.org/codepush/ 代理到本服务 (host:3003)
-      - LOCAL_DOWNLOAD_URL=https://hyperpush.org/codepush/download
+      # ★ 公网下载地址 — Lucky nginx 将 cp.hyperpush.org/codepush/ 代理到本服务 (host:3003)
+      - LOCAL_DOWNLOAD_URL=https://cp.hyperpush.org/codepush/download
       - DATA_DIR=/data/tmp
 
       # ── JWT 签名密钥 (若未设置，启动时自动生成随机密钥) ──

@@ -443,7 +443,7 @@ jobs:
             docker tag "$IMAGE_APP" hyperpush:latest
 
             echo "========================================"
-            echo " 5/7 — Run DB migration..."
+            echo " 5/7 — Sync DB schema (prisma db push)..."
             echo "========================================"
             NETWORK=$(docker inspect hyperpush-db \
               --format '{{range $k,$v := .NetworkSettings.Networks}}{{$k}}{{end}}' \
@@ -453,7 +453,7 @@ jobs:
               --env-file .env \
               --entrypoint "" \
               "$IMAGE_APP" \
-              npx prisma migrate deploy 2>&1 || echo "⚠️ Migration may have already been applied"
+              npx prisma db push 2>&1 || echo "⚠️ Schema sync may have already been applied"
 
             echo "========================================"
             echo " 6/7 — Stop old containers & restart..."

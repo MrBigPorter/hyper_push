@@ -1,19 +1,23 @@
 # ==========================================
-# HyperPush — Production Docker Compose
+# HyperPush — Production Docker Compose (Base)
 # ==========================================
 # 生产环境使用:
-#   docker compose up -d --build
+#   docker compose -f compose.yml -f deploy/compose.prod.yml up -d
 #
 # 开发环境使用:
 #   docker compose -f compose.yml -f compose.dev.yml up -d --build
 # ==========================================
 # 架构说明:
-#   - HyperPush BFF: NestJS + Prisma + GraphQL (port 3000)
-#   - Frontend:      已迁移到 Cloudflare Pages（本地开发用 npm run dev）
+#   - HyperPush BFF: NestJS + Prisma + GraphQL (port 3000 → host 3002)
 #   - PostgreSQL 16 (HyperPush 数据库)
-#   - code-push-server (port 3001)
+#   - code-push-server (port 3000 → host 3003)
 #   - MySQL 8.0 (CodePush 数据库)
 #   - Redis 7 (CodePush 缓存)
+# ==========================================
+# 域名架构:
+#   - 前台: https://hyperpush.org/              (Cloudflare Pages / VPS)
+#   - API:  https://cp.hyperpush.org/graphql    (Lucky Nginx → BFF :3002)
+#   - CodePush: https://cp.hyperpush.org/       (Lucky Nginx → CodePush :3003)
 # ==========================================
 
 include:

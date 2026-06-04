@@ -1,5 +1,5 @@
 # ==========================================
-# HyperPush — Production Docker Compose
+# HyperPush — Production Docker Compose (Override)
 # ==========================================
 # 使用方法:
 #   docker compose -f compose.yml -f deploy/compose.prod.yml up -d
@@ -12,11 +12,11 @@
 #      export JWT_SECRET="your-strong-jwt-secret"
 #      export DATABASE_URL="postgresql://hyperpush:hyperpush123@db:5432/hyperpush"
 # ==========================================
-# ★ 所有服务统一使用 hyperpush.org 一个域名:
-#   - 管理后台: https://hyperpush.org/
-#   - GraphQL:  https://hyperpush.org/graphql
-#   - API:      https://hyperpush.org/api/
-#   - CodePush: https://hyperpush.org/codepush/
+# ★ 域名架构（与 compose.yml 配合使用）:
+#   - 管理后台: https://hyperpush.org/                  (Cloudflare Pages / VPS)
+#   - GraphQL:  https://cp.hyperpush.org/graphql         (Lucky Nginx → BFF :3002)
+#   - CodePush: https://cp.hyperpush.org/codepush/       (Lucky Nginx → CodePush :3003)
+#   - 下载地址: https://cp.hyperpush.org/codepush/download
 # ==========================================
 
 services:
@@ -44,8 +44,8 @@ services:
       DATABASE_URL: ${DATABASE_URL:-postgresql://hyperpush:hyperpush123@db:5432/hyperpush}
       NODE_ENV: production
       JWT_SECRET: ${JWT_SECRET}
-      # CodePush 管理端入口 (由 Lucky nginx 将 /codepush/ 代理到本服务)
-      PUBLIC_URL: https://hyperpush.org/codepush
+      # CodePush 管理端入口 (由 Lucky nginx 将 cp.hyperpush.org/codepush/ 代理到本服务)
+      PUBLIC_URL: https://cp.hyperpush.org/codepush
     depends_on:
       db:
         condition: service_healthy
