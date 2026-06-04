@@ -21,7 +21,6 @@ on:
       - "compose.yml"
       - "compose.codepush.yml"
       - "deploy/compose.prod.yml"
-      - "deploy/nginx-hyperpush.conf"
       - "frontend/Dockerfile"
       - "backend/Dockerfile"
       - ".github/workflows/deploy-vps.yml"
@@ -374,19 +373,6 @@ jobs:
           rm -f /tmp/hyperpush-deploy.tar.gz
           echo "✅ Local archive cleaned up"
 
-      # ---- SCP: 同步 Nginx 配置到 VPS ----
-      - name: Sync Nginx config to VPS
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USERNAME }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: ${{ secrets.SSH_PORT || '22' }}
-          source: "deploy/nginx-hyperpush.conf"
-          target: /opt/hyperpush/deploy
-          overwrite: true
-          timeout: 120s
-
       # ---- 计算小写镜像名 (Docker 强制要求小写) ----
       - name: Set lowercase image names (Docker requirement)
         run: |
@@ -501,16 +487,6 @@ jobs:
               exit 1
             fi
 
-            echo "========================================"
-            echo " Reload Nginx config..."
-            echo "========================================"
-            if docker exec hyperpush-nginx nginx -t 2>&1; then
-              docker exec hyperpush-nginx nginx -s reload
-              echo " ✅ Nginx config reloaded"
-            else
-              echo " ⚠️ Nginx config syntax error! Check deploy/nginx-hyperpush.conf"
-            fi
-
             # Cleanup old images
             docker image prune -f
 
@@ -520,13 +496,13 @@ jobs:
 
       # ---- 外部验证 ----
       # ★ 注意: hyperpush.org 走的是 Cloudflare Pages，CI 验证时不走公网域名
-      #   改为直连 VPS IP:8080 (HyperPush Nginx)，绕过 Cloudflare
+      #   改为直连 VPS IP:80 (Lucky Nginx)，绕过 Cloudflare
       - name: 🔍 Verify API externally (via VPS directly)
         id: verify
         continue-on-error: true
         timeout-minutes: 3
         env:
-          VPS_URL: http://${{ secrets.SERVER_IP }}:8080
+          VPS_URL: http://${{ secrets.SERVER_IP }}
         run: |
           set -euo pipefail
           echo "→ Verifying from GitHub runner (direct to VPS)..."
