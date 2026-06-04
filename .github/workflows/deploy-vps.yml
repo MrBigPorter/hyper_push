@@ -169,7 +169,7 @@ jobs:
         working-directory: frontend
         run: npm run build:only
         env:
-          VITE_API_URL: https://hyperpush.org/graphql
+          VITE_API_URL: ${{ vars.API_URL || 'https://cp.hyperpush.org/graphql' }}
 
       - name: Create Cloudflare Pages project if not exists
         working-directory: frontend

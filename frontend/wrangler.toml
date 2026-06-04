@@ -2,5 +2,3 @@ name = "hyperpush"
 compatibility_date = "2025-05-01"
 pages_build_output_dir = "dist/app"
 
-[env.production]
-vars = { VITE_API_URL = "https://hyperpush.org/graphql" }

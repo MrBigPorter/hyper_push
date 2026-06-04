@@ -297,50 +297,29 @@ CMD ["nginx", "-g", "daemon off;"]
 
 ---
 
-### 7. Nginx Reverse Proxy — Container-Based with Hot Reload
+### 7. Unified Reverse Proxy via JoyMini Nginx
 
-**Problem:** The production stack serves 4 services (frontend SPA, backend GraphQL API, code-push-server REST API, and static assets). Each needs proper routing, static asset caching, and large upload support. Caddy 2 was initially used but its auto-https (Let's Encrypt) caused reliability issues.
+**Problem:** The production stack serves 3 services (frontend SPA, backend GraphQL API, code-push-server REST API). Each needs proper routing, large upload support, and TLS termination. Running a separate nginx container per project creates port conflicts and duplicated configuration.
 
-**Solution:** Nginx (`nginx:alpine`) running inside Docker, configured via a single mounted config file. Config is hot-reloaded via `docker exec nginx -t && docker exec nginx -s reload` — following the same pattern as [JoyMini's production deployment](https://github.com/Porter-Sz/JoyMini_Nest_Monorepo).
+**Solution:** HyperPush no longer manages its own nginx container. Instead, it is served through [JoyMini's Nginx](https://github.com/Porter-Sz/JoyMini_Nest_Monorepo) reverse proxy, which acts as the single entry point for all domains on the VPS. JoyMini's nginx routes traffic to HyperPush containers via `host.docker.internal`:
 
-```nginx
-# Main domain — admin UI SPA + GraphQL API
-server {
-    listen 80;
-    server_name hyperpush.org;
-
-    location / {
-        proxy_pass http://hyperpush-frontend:80;
-    }
-
-    location /graphql {
-        proxy_pass http://hyperpush-app:3000;
-    }
-}
-
-# CodePush domain — code-push-server
-server {
-    listen 80;
-    server_name cp.hyperpush.org;
-    client_max_body_size 500M;
-
-    location / {
-        proxy_pass http://hyperpush-codepush-prod:3000;
-    }
-}
 ```
+hyperpush.org        → host.docker.internal:3002  (BFF NestJS — GraphQL + REST)
+hyperpush.org/codepush/ → host.docker.internal:3003  (code-push-server REST API)
+```
+
+This is configured in JoyMini's [`40-hyperpush.conf`](https://github.com/Porter-Sz/JoyMini_Nest_Monorepo/blob/main/nginx/conf.d/40-hyperpush.conf) using path-based routing with `client_max_body_size 500M` for CodePush release uploads.
 
 **Key details:**
 
-- **Two server blocks, one Nginx container** — `hyperpush.org` for the admin UI SPA + GraphQL, `cp.hyperpush.org` for the CodePush server
-- **Path-based routing** — `/graphql` and `/api/*` go to the backend, `/` goes to the frontend SPA
-- **Docker DNS resolver** — `resolver 127.0.0.11 valid=10s` prevents 502 errors after container recreation
-- **Hot reload** — Config synced via `appleboy/scp-action`, then reloaded with `nginx -s reload` (no restart)
-- **Large uploads** — `client_max_body_size 500M` for CodePush release file uploads
-- **Static asset caching** — Frontend assets (JS/CSS/images) cached with `expires 30d`
-- **No TLS yet** — Initially HTTP-only; HTTPS can be added later by mounting certs volume
+- **Single domain, path-based routing** — All services under `hyperpush.org`: `/` and `/graphql` go to the BFF (port 3002), `/codepush/` goes to code-push-server (port 3003)
+- **No nginx container in HyperPush** — The project's `compose.prod.yml` only defines the app (BFF) and codepush services; routing is handled externally
+- **`host.docker.internal`** — Cross-compose Docker networking via host port mapping, enabled by `extra_hosts: host.docker.internal:host-gateway` in JoyMini's nginx service
+- **TLS via JoyMini** — HTTPS is terminated by JoyMini's nginx (Cloudflare Flexible SSL: encrypted between client ↔ Cloudflare, HTTP on port 80 between Cloudflare ↔ nginx)
+- **Large uploads** — `client_max_body_size 500M` configured in JoyMini's nginx for CodePush release file uploads
+- **No TLS setup needed in HyperPush** — All certificate management is handled by JoyMini's nginx + Cloudflare
 
-**Files:** [`nginx-hyperpush.conf`](deploy/nginx-hyperpush.conf) · [`compose.prod.yml`](deploy/compose.prod.yml)
+**Files:** [`compose.prod.yml`](deploy/compose.prod.yml) · JoyMini: [`40-hyperpush.conf`](https://github.com/Porter-Sz/JoyMini_Nest_Monorepo/blob/main/nginx/conf.d/40-hyperpush.conf)
 
 ---
 
@@ -353,25 +332,22 @@ graph TB
         CPClient["React Native Client<br/>code-push SDK"]
     end
 
-    subgraph Nginx["Nginx Reverse Proxy"]
-        CP["cp.hyperpush.org<br/>→ code-push-server:3000"]
-        Console["hyperpush.org<br/>/ → Frontend SPA<br/>/graphql → Backend API<br/>/api/* → Backend API"]
+    subgraph JoyMini["JoyMini Nginx (External)"]
+        Console["hyperpush.org<br/>/ → BFF :3002<br/>/graphql → BFF :3002<br/>/codepush/* → CodePush :3003"]
     end
 
-    subgraph VPS["VPS · Docker Compose"]
-        Frontend["Frontend<br/>Nginx · Static SPA"]
-        Backend["NestJS 11 BFF<br/>GraphQL Apollo 5 · JWT"]
-        CodePush["code-push-server<br/>REST API · v5.7.1"]
+    subgraph VPS["HyperPush · Docker Compose"]
+        Backend["NestJS 11 BFF<br/>GraphQL Apollo 5 · JWT<br/>:3002"]
+        CodePush["code-push-server<br/>REST API · v5.7.1<br/>:3003"]
         DB[("App DB<br/>SQLite / PostgreSQL<br/>Prisma 7 ORM")]
         MySQL[("CodePush DB<br/>MySQL 8.0")]
         Redis[("Redis 7<br/>CodePush Storage")]
     end
 
     User --> Console
-    CPClient --> CP
-    Console --> Frontend
-    Console --> Backend
-    CP --> CodePush
+    CPClient --> Console
+    Console -->|host.docker.internal:3002| Backend
+    Console -->|host.docker.internal:3003| CodePush
     Backend --> DB
     Backend -->|REST Proxy| CodePush
     CodePush --> MySQL
@@ -441,7 +417,6 @@ hyperpush/
 │   └── Dockerfile                    # 5-stage: base → deps → dev → build → production (Nginx)
 │
 ├── deploy/                           # Production deployment files
-│   ├── nginx-hyperpush.conf          # Nginx reverse proxy config
 │   └── compose.prod.yml              # Production Docker Compose
 │
 ├── infra/                            # AWS CDK infrastructure (TypeScript)
@@ -599,7 +574,7 @@ graph LR
 | **Dual CI/CD** | "The same codebase deploys to two targets: VPS Docker Compose for cost efficiency and rapid iteration, and AWS ECS via CDK for production scalability. Both use the same Docker images from GHCR, so images are built once and deployed to both targets." |
 | **Multi-stage Docker** | "The frontend Dockerfile has 5 stages with strategic COPY ordering — `package.json` first (rarely changes → cached), then source code. This cuts CI build times from ~2min to ~30s. Production stage uses `nginx:1.27-alpine` (~23MB) instead of the full Node.js image." |
 | **Database Flexibility** | "Local dev uses SQLite via Prisma's `adapter-pg` compatibility layer — no PostgreSQL installation needed. Production uses PostgreSQL. The Prisma schema is the single source of truth, and migrations auto-run on startup in the backend's `bootstrap` hook." |
-| **Nginx Reverse Proxy** | "Nginx runs in a Docker container with hot-reloadable config. One config file routes two domains (console + codepush) to the right internal services with path-based routing, static caching, and large upload support." |
+| **Unified Reverse Proxy** | "HyperPush does not manage its own nginx. It is served through JoyMini's nginx, which acts as the single entry point for all VPS domains. JoyMini routes `hyperpush.org/` to the BFF and `hyperpush.org/codepush/` to code-push-server via `host.docker.internal`, handling TLS, caching, and large uploads." |
 | **Audit Logging** | "Every CodePush operation (release, deployment change, app creation) is logged with user ID, timestamp, and action details. The audit log is queryable via GraphQL with filtering and pagination." |
 | **Project Ownership** | "I designed the architecture, implemented the full-stack code, containerized everything, set up CI/CD for both VPS and AWS, and wrote all documentation. This is a solo project from start to finish." |
 
@@ -616,7 +591,7 @@ As the **sole developer and architect** of this project, I:
 - 📊 **Created** the audit logging system — full CRUD audit trail for all CodePush operations
 - 🐳 **Containerized** the entire stack — 5-stage frontend Docker build, 3-stage backend, Docker Compose orchestration
 - 🚀 **Designed** dual CI/CD pipelines — VPS (Docker Compose with native SSH) + AWS (ECS Fargate via CDK)
-- ☁️ **Set up** Nginx reverse proxy — container-based with hot reload, Docker DNS resolver
+- ☁️ **Configured** unified reverse proxy — HyperPush served through JoyMini's nginx with path-based routing via `host.docker.internal`
 - 📝 **Wrote** comprehensive documentation — deployment guide, development guide, architecture analysis
 
 ---
