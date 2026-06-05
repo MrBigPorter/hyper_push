@@ -18,9 +18,12 @@ COPY prisma/schema.prisma ./prisma/
 
 RUN bun install --frozen-lockfile
 
+# Generate Prisma client before copying source code
+# so Docker layer caching skips this step if schema hasn't changed
+RUN bunx prisma generate
+
 COPY . .
 
-RUN bunx prisma generate
 RUN bun run build
 
 # -----------------------------------------

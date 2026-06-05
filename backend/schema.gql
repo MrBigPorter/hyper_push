@@ -96,6 +96,7 @@ scalar JSON
 input LoginInput {
   email: String!
   password: String!
+  recaptchaToken: String
 }
 
 type Mutation {
@@ -181,6 +182,7 @@ input RegisterInput {
   email: String!
   name: String
   password: String!
+  recaptchaToken: String
 }
 
 type Server {

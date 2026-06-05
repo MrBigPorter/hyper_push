@@ -112,8 +112,9 @@ graph TB
 ### Rate Limiting
 
 - **Library**: `@nestjs/throttler`
-- **Global limit**: 100 requests per 60 seconds per IP
-- **Login limit**: 10 requests per 60 seconds per IP (stricter)
+- **Global limit**: 60 requests per 60 seconds per IP
+- **Login limit**: 5 requests per 60 seconds per IP (stricter)
+- **Register limit**: 3 requests per 10 minutes per IP
 - **Guard**: [`GqlThrottlerGuard`](/backend/src/auth/guards/gql-throttler.guard.ts) wraps GraphQL requests
 - **Configuration**: [`AuthModule`](/backend/src/auth/auth.module.ts) — `ThrottlerModule.forRoot()`
 
@@ -236,6 +237,7 @@ Automatic weekly dependency updates via [`.github/dependabot.yml`](/.github/depe
 | `RECAPTCHA_SECRET_KEY` | Google reCAPTCHA v3 secret key | No (skipped if empty) |
 | `RECAPTCHA_THRESHOLD` | reCAPTCHA score threshold (default: `0.5`) | No |
 | `VITE_RECAPTCHA_SITE_KEY` | reCAPTCHA site key for frontend | No (skipped if empty) |
+| `GRAFANA_AUTH_SECRET` | Grafana SSO JWT signing secret (must match `infra-platform/.env`) | Yes (for SSO) |
 | `CORS_ORIGINS` | Comma-separated allowed origins | Yes (prod) |
 | `NODE_ENV` | `development` / `production` | Yes |
 

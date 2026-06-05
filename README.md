@@ -59,7 +59,7 @@ Browser (React 19) ──GraphQL──► NestJS 11 BFF ──REST──► code
 | reCAPTCHA v3 | Bot detection on login/register |
 | Password Policy | Min 8 chars, complexity requirements |
 | Login Lockout | 5 attempts → 15 min auto-expiring lockout |
-| Rate Limiting | @nestjs/throttler (100 req/min global, 10 req/min login) |
+| Rate Limiting | @nestjs/throttler (60 req/min global, 5 req/min login) |
 | Helmet | HTTP security headers |
 | GraphQL Depth Limit | Max 7 levels (prevents deep-nested attacks) |
 | GraphQL Introspection | Disabled in production |

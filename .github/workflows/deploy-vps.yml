@@ -81,6 +81,8 @@ jobs:
 
       - name: Validate DI graph (hard gate)
         working-directory: backend
+        env:
+          JWT_SECRET: dummy-validate-di-secret
         run: bun scripts/validate-di.mts
 
       - name: Lint backend

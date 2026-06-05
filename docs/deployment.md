@@ -145,17 +145,33 @@ Add these secrets in GitHub → Settings → Secrets and variables → Actions:
 | `SSH_PORT` | SSH port | `22` |
 | `SSH_USERNAME` | SSH user | `root` |
 | `SSH_PRIVATE_KEY` | Deploy SSH private key | `-----BEGIN OPENSSH PRIVATE KEY-----...` |
-| `GITHUB_TOKEN` | GHCR access token (auto-provided) | `${{ secrets.GITHUB_TOKEN }}` |
-| `TOTP_ENCRYPTION_KEY` | 32-hex-char encryption key | `openssl rand -hex 16` |
+| `DATABASE_URL` | PostgreSQL connection string | `postgresql://hyperpush:password@db:5432/hyperpush` |
+| `POSTGRES_PASSWORD` | PostgreSQL password | `openssl rand -base64 24` |
+| `MYSQL_ROOT_PASSWORD` | CodePush MySQL root password | `openssl rand -base64 24` |
+| `JWT_SECRET` | JWT signing secret | `openssl rand -hex 64` |
+| `TOKEN_SECRET` | Additional token signing secret | `openssl rand -hex 32` |
+| `TOTP_ENCRYPTION_KEY` | AES-256-GCM key (32 hex chars) | `openssl rand -hex 16` |
+| `GRAFANA_AUTH_SECRET` | Grafana SSO JWT signing secret (must match `infra-platform/.env`) | `openssl rand -hex 32` |
+| `GRAFANA_ADMIN_PASSWORD` | Grafana admin password | `openssl rand -base64 24` |
 | `RECAPTCHA_SECRET_KEY` | Google reCAPTCHA v3 secret | *(from Google reCAPTCHA admin)* |
 | `VITE_RECAPTCHA_SITE_KEY` | Google reCAPTCHA v3 site key | *(from Google reCAPTCHA admin)* |
-| `POSTGRES_PASSWORD` | PostgreSQL password (required!) | `openssl rand -base64 24` |
-| `MYSQL_ROOT_PASSWORD` | CodePush MySQL root password (required!) | `openssl rand -base64 24` |
+| `CODEPUSH_DOMAIN` | CodePush server domain | `cp.yourdomain.com` |
+| `CONSOLE_DOMAIN` | HyperPush console domain | `console.yourdomain.com` |
+| `SERVER_IP` | VPS IP address (duplicate for clarity) | `123.123.123.123` |
+| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare account ID (for frontend deploy) | *(from Cloudflare dashboard)* |
+| `CLOUDFLARE_API_TOKEN` | Cloudflare API token | *(from Cloudflare dashboard)* |
+| `VITE_API_URL` | Frontend API base URL | `https://console.yourdomain.com/graphql` |
+| `VITE_MONITOR_URL` | Grafana/Monitor URL | `https://monitor.yourdomain.com` |
 
-Generate a random hex string for TOTP encryption:
+> **Note**: `GITHUB_TOKEN` is auto-provided by GitHub Actions — no need to create it manually.
+
+Generate random secrets:
 
 ```bash
-openssl rand -hex 16
+openssl rand -hex 64   # JWT_SECRET
+openssl rand -hex 32   # TOKEN_SECRET / GRAFANA_AUTH_SECRET
+openssl rand -hex 16   # TOTP_ENCRYPTION_KEY
+openssl rand -base64 24 # POSTGRES_PASSWORD / MYSQL_ROOT_PASSWORD / GRAFANA_ADMIN_PASSWORD
 ```
 
 ---

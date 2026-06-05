@@ -23,7 +23,10 @@ import { TwoFactorService } from './two-factor.service.js';
         }
         return {
           secret,
-          signOptions: { expiresIn: '7d' },
+          signOptions: {
+            expiresIn: (configService.get<string>('JWT_EXPIRATION') ??
+              '7d') as `${number}${'s' | 'm' | 'h' | 'd'}`,
+          },
         };
       },
     }),
