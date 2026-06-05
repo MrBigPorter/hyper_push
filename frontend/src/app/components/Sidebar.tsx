@@ -38,6 +38,11 @@ const navItems: NavItem[] = [
 const MONITOR_URL =
   import.meta.env.VITE_MONITOR_URL ?? 'https://monitor.joyminis.com';
 
+// Derive API base URL from the GraphQL endpoint (VITE_API_URL), falling back to same-origin
+const API_BASE = import.meta.env.VITE_API_URL
+  ? import.meta.env.VITE_API_URL.replace(/\/graphql\/?$/, '')
+  : '';
+
 export function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -53,7 +58,7 @@ export function Sidebar() {
 
   const handleOpenCodePushLogs = async () => {
     try {
-      const res = await fetch('/api/auth/grafana-token', {
+      const res = await fetch(`${API_BASE}/api/auth/grafana-token`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error('Failed to get Grafana token');
