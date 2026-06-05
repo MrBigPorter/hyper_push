@@ -1,5 +1,5 @@
 import { Field, InputType } from '@nestjs/graphql';
-import { IsEmail, IsString } from 'class-validator';
+import { IsEmail, IsOptional, IsString } from 'class-validator';
 
 @InputType()
 export class LoginInput {
@@ -10,4 +10,9 @@ export class LoginInput {
   @Field()
   @IsString()
   password!: string;
+
+  @Field({ nullable: true })
+  @IsOptional()
+  @IsString()
+  recaptchaToken?: string;
 }

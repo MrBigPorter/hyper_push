@@ -100,7 +100,7 @@ input LoginInput {
 
 type Mutation {
   addCodepushCollaborator(appName: String!, email: String!, serverId: String!): JSON!
-  banUser(userId: String!, reason: String): Boolean!
+  banUser(reason: String, userId: String!): Boolean!
   changePassword(input: ChangePasswordInput!): Boolean!
   clearCodepushDeploymentHistory(appName: String!, deploymentName: String!, serverId: String!): Boolean!
   codepushLogin(account: String!, password: String!, serverId: String!): JSON!
@@ -130,15 +130,15 @@ type Mutation {
   updateCodepushDeployment(input: UpdateDeploymentInput!): JSON!
   updateCodepushRelease(input: UpdateReleaseInput!): JSON!
   updateServer(input: UpdateServerInput!): Server!
-  updateUser(input: UpdateUserInput!): Boolean!
+  updateUser(input: UpdateUserInput!): User!
   verify2fa(input: Verify2faInput!): Auth!
 }
 
 type PaginatedUsers {
   items: [User!]!
-  total: Int!
-  page: Int!
-  limit: Int!
+  limit: Float!
+  page: Float!
+  total: Float!
 }
 
 type PaginationInfo {
@@ -172,7 +172,7 @@ type Query {
   getApiKeys: [ApiKey!]!
   getAuditLogs(filter: AuditLogFilterInput): AuditLogListResponse!
   getServers: [Server!]!
-  listUsers(limit: Int, page: Int, search: String, sortBy: String, sortOrder: String): PaginatedUsers!
+  listUsers(limit: Float, page: Float, search: String, sortBy: String, sortOrder: String): PaginatedUsers!
   me: User!
   server(id: String!): Server!
 }

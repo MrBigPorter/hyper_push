@@ -1,5 +1,6 @@
 import {
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
   UnauthorizedException,
@@ -7,7 +8,9 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import type { LoginInput, RegisterInput, UpdateUserInput } from '@/auth/dto';
+import { AuditLogService } from '../audit-log/audit-log.service.js';
 import { CodepushDbService } from '../codepush/codepush-db.service.js';
+import { RecaptchaService } from '../common/recaptcha/recaptcha.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { TwoFactorService } from './two-factor.service.js';
 
@@ -57,9 +60,17 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly codepushDb: CodepushDbService,
     private readonly twoFactorService: TwoFactorService,
+    private readonly recaptchaService: RecaptchaService,
+    private readonly auditLogService: AuditLogService,
   ) {}
 
   async register(input: RegisterInput) {
+    // Verify reCAPTCHA token (if provided / enabled)
+    const recaptchaResult = await this.recaptchaService.verifyToken(input.recaptchaToken);
+    if (!recaptchaResult.success) {
+      throw new ForbiddenException('reCAPTCHA verification failed');
+    }
+
     const existing = await this.prisma.user.findUnique({ where: { email: input.email } });
     if (existing) {
       throw new ConflictException('Email already registered');
@@ -72,6 +83,15 @@ export class AuthService {
         password: hashedPassword,
         name: input.name ?? null,
       },
+    });
+
+    // Audit log: user registration
+    await this.auditLogService.create({
+      userId: user.id,
+      action: 'register',
+      entity: 'user',
+      entityId: user.id,
+      detail: `User registered with email: ${input.email}`,
     });
 
     // Auto-create matching admin account on code-push-server.
@@ -112,6 +132,12 @@ export class AuthService {
   }
 
   async login(input: LoginInput, metadata?: { ip?: string; userAgent?: string }) {
+    // Verify reCAPTCHA token (if provided / enabled)
+    const recaptchaResult = await this.recaptchaService.verifyToken(input.recaptchaToken);
+    if (!recaptchaResult.success) {
+      throw new ForbiddenException('reCAPTCHA verification failed');
+    }
+
     const user = await this.prisma.user.findUnique({ where: { email: input.email } });
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
@@ -123,12 +149,23 @@ export class AuthService {
     }
 
     // === Check lockout (rate-limited login attempts) ===
-    if (user.lockoutUntil && user.lockoutUntil > new Date()) {
-      const remainingMs = user.lockoutUntil.getTime() - Date.now();
-      const remainingMin = Math.ceil(remainingMs / 60000);
-      throw new UnauthorizedException(
-        `Account temporarily locked. Try again in ${remainingMin} minute(s).`,
-      );
+    if (user.lockoutUntil) {
+      if (user.lockoutUntil > new Date()) {
+        // Still within lockout window — reject
+        const remainingMs = user.lockoutUntil.getTime() - Date.now();
+        const remainingMin = Math.ceil(remainingMs / 60000);
+        throw new UnauthorizedException(
+          `Account temporarily locked. Try again in ${remainingMin} minute(s).`,
+        );
+      }
+      // Lockout period has expired — auto-reset attempts
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: {
+          loginAttempts: 0,
+          lockoutUntil: null,
+        },
+      });
     }
 
     // === Verify password ===
@@ -269,6 +306,15 @@ export class AuthService {
       data: { password: hashedPassword },
     });
 
+    // Audit log: password change
+    await this.auditLogService.create({
+      userId,
+      action: 'change_password',
+      entity: 'user',
+      entityId: userId,
+      detail: 'User changed their password',
+    });
+
     return true;
   }
 
@@ -283,6 +329,16 @@ export class AuthService {
       data: {
         ...(input.name !== undefined ? { name: input.name } : {}),
       },
+    });
+
+    // Audit log: user profile updated
+    await this.auditLogService.create({
+      userId: input.id,
+      action: 'update_user',
+      entity: 'user',
+      entityId: input.id,
+      detail:
+        input.name !== undefined ? `User name updated to: ${input.name}` : 'User profile updated',
     });
 
     return this.sanitizeUser(updated);
@@ -351,7 +407,7 @@ export class AuthService {
   /**
    * Ban a user by ID.
    */
-  async banUser(userId: string, reason?: string) {
+  async banUser(userId: string, adminId: string, reason?: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) {
       throw new NotFoundException('User not found');
@@ -366,13 +422,22 @@ export class AuthService {
       },
     });
 
+    // Audit log: user banned
+    await this.auditLogService.create({
+      userId: adminId,
+      action: 'ban_user',
+      entity: 'user',
+      entityId: userId,
+      detail: reason ? `User banned. Reason: ${reason}` : 'User banned',
+    });
+
     return true;
   }
 
   /**
    * Unban a user by ID.
    */
-  async unbanUser(userId: string) {
+  async unbanUser(userId: string, adminId: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) {
       throw new NotFoundException('User not found');
@@ -387,6 +452,15 @@ export class AuthService {
         loginAttempts: 0,
         lockoutUntil: null,
       },
+    });
+
+    // Audit log: user unbanned
+    await this.auditLogService.create({
+      userId: adminId,
+      action: 'unban_user',
+      entity: 'user',
+      entityId: userId,
+      detail: 'User unbanned',
     });
 
     return true;

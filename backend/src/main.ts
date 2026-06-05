@@ -1,10 +1,14 @@
 import 'reflect-metadata';
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import helmet from 'helmet';
 import { AppModule } from './app.module.js';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // Security: HTTP headers (CSP, HSTS, X-Frame-Options, etc.)
+  app.use(helmet());
 
   app.setGlobalPrefix('api', { exclude: ['/graphql'] });
 

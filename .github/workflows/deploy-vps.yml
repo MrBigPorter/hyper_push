@@ -170,6 +170,7 @@ jobs:
         run: npm run build:only
         env:
           VITE_API_URL: ${{ vars.API_URL || 'https://cp.hyperpush.org/graphql' }}
+          VITE_RECAPTCHA_SITE_KEY: ${{ secrets.RECAPTCHA_SITE_KEY }}
 
       - name: Create Cloudflare Pages project if not exists
         working-directory: frontend
@@ -429,9 +430,12 @@ jobs:
             CONSOLE_DOMAIN=${{ secrets.CONSOLE_DOMAIN }}
             JWT_SECRET=${{ secrets.JWT_SECRET }}
             TOKEN_SECRET=${{ secrets.TOKEN_SECRET }}
+            TOTP_ENCRYPTION_KEY=${{ secrets.TOTP_ENCRYPTION_KEY }}
             DATABASE_URL=${{ secrets.DATABASE_URL || 'postgresql://hyperpush:hyperpush123@db:5432/hyperpush' }}
             PUBLIC_URL=https://${{ secrets.CODEPUSH_DOMAIN }}
             CORS_ORIGINS=https://hyperpush.org
+            RECAPTCHA_SECRET_KEY=${{ secrets.RECAPTCHA_SECRET_KEY }}
+            RECAPTCHA_ENABLED=true
             ENVEOF
 
             echo "========================================"

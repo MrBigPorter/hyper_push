@@ -38,6 +38,7 @@ interface PasswordFormData {
   currentPassword: string;
   newPassword: string;
   confirmPassword: string;
+  totpToken?: string;
 }
 
 interface TotpSetupFormData {
@@ -212,13 +213,23 @@ export function SettingsPage() {
 
     setIsChangingPassword(true);
     try {
-      await changePassword({
-        variables: {
-          input: {
-            currentPassword: data.currentPassword,
-            newPassword: data.newPassword,
-          },
+      const variables: {
+        input: {
+          currentPassword: string;
+          newPassword: string;
+          totpToken?: string;
+        };
+      } = {
+        input: {
+          currentPassword: data.currentPassword,
+          newPassword: data.newPassword,
         },
+      };
+      if (user?.totpEnabled && data.totpToken) {
+        variables.input.totpToken = data.totpToken;
+      }
+      await changePassword({
+        variables,
       }) as { data?: ChangePasswordResponseData };
       setPasswordSuccess(true);
       passwordForm.reset();
@@ -545,6 +556,29 @@ export function SettingsPage() {
                 {...passwordForm.register('confirmPassword')}
               />
             </div>
+            {user?.totpEnabled && (
+              <div>
+                <label
+                  htmlFor="totp-code"
+                  className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
+                  Authenticator Code
+                </label>
+                <input
+                  id="totp-code"
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="000000"
+                  maxLength={6}
+                  required
+                  className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:border-gray-600 dark:bg-dark-800 dark:text-gray-100"
+                  {...passwordForm.register('totpToken')}
+                />
+                <p className="mt-1 text-xs text-gray-400">
+                  Enter the 6-digit code from your authenticator app
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-3 pt-2">

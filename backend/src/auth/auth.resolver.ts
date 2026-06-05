@@ -1,5 +1,6 @@
 import { UseGuards } from '@nestjs/common';
 import { Args, Context, Field, Mutation, ObjectType, Query, Resolver } from '@nestjs/graphql';
+import { Throttle } from '@nestjs/throttler';
 import {
   ChangePasswordInput,
   LoginInput,
@@ -52,6 +53,7 @@ export class AuthResolver {
   //  Public mutations
   // ========================
 
+  @Throttle({ default: { ttl: 60000, limit: 5 } })
   @Mutation(() => AuthModel)
   async login(
     @Args('input', { type: () => LoginInput }) input: LoginInput,
@@ -64,6 +66,7 @@ export class AuthResolver {
     return this.authService.login(input, { ip, userAgent });
   }
 
+  @Throttle({ default: { ttl: 600000, limit: 3 } })
   @Mutation(() => AuthModel)
   async register(@Args('input', { type: () => RegisterInput }) input: RegisterInput) {
     return this.authService.register(input);
@@ -114,6 +117,7 @@ export class AuthResolver {
    * Complete 2FA login: verify TOTP token and exchange temp token
    * for full access token.
    */
+  @Throttle({ default: { ttl: 60000, limit: 5 } })
   @Mutation(() => AuthModel)
   async verify2fa(@Args('input', { type: () => Verify2faInput }) input: Verify2faInput) {
     return this.authService.verify2fa(input.tempToken, input.token);
@@ -166,7 +170,7 @@ export class AuthResolver {
     if (ctx.req.user.role !== 'admin') {
       throw new Error('Only admins can ban users');
     }
-    return this.authService.banUser(userId, reason);
+    return this.authService.banUser(userId, ctx.req.user.sub, reason);
   }
 
   @Mutation(() => Boolean)
@@ -178,7 +182,7 @@ export class AuthResolver {
     if (ctx.req.user.role !== 'admin') {
       throw new Error('Only admins can unban users');
     }
-    return this.authService.unbanUser(userId);
+    return this.authService.unbanUser(userId, ctx.req.user.sub);
   }
 
   // ========================

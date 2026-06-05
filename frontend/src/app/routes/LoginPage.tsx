@@ -1,6 +1,6 @@
 // ==========================================
 // HyperPush — Login Page
-// Supports TOTP 2FA second step
+// Supports TOTP 2FA second step + reCAPTCHA v3
 // ==========================================
 
 import { useMutation } from '@apollo/client/react';
@@ -14,6 +14,7 @@ import { Link, useNavigate } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { KeyRound, Smartphone } from 'lucide-react';
+import { useRecaptchaToken } from '@app/components/RecaptchaProvider';
 
 // Zod validation schema for step 1 (email + password)
 const loginSchema = z.object({
@@ -36,6 +37,7 @@ export function LoginPage() {
 
   const [loginMutation] = useMutation(LOGIN_MUTATION);
   const [verify2faMutation] = useMutation(VERIFY_2FA_MUTATION);
+  const { getRecaptchaToken } = useRecaptchaToken();
 
   // Step 1 form (email + password)
   const loginForm = useForm<LoginFormData>({
@@ -58,11 +60,15 @@ export function LoginPage() {
     dispatch(authStart());
 
     try {
+      // Execute reCAPTCHA (if configured)
+      const recaptchaToken = await getRecaptchaToken('login');
+
       const result = (await loginMutation({
         variables: {
           input: {
             email: data.email,
             password: data.password,
+            recaptchaToken,
           },
         },
       })) as { data?: AuthResponseData };

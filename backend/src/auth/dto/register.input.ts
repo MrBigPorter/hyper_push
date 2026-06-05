@@ -1,5 +1,5 @@
 import { Field, InputType } from '@nestjs/graphql';
-import { IsEmail, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsOptional, IsString, Matches, MinLength } from 'class-validator';
 
 @InputType()
 export class RegisterInput {
@@ -9,11 +9,20 @@ export class RegisterInput {
 
   @Field()
   @IsString()
-  @MinLength(6)
+  @MinLength(8)
+  @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, {
+    message:
+      'Password must contain at least one uppercase letter, one lowercase letter, and one number',
+  })
   password!: string;
 
   @Field({ nullable: true })
   @IsOptional()
   @IsString()
   name?: string;
+
+  @Field({ nullable: true })
+  @IsOptional()
+  @IsString()
+  recaptchaToken?: string;
 }

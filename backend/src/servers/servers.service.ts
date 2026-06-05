@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import type { CreateServerInput, UpdateServerInput } from '@/servers/dto';
+import { AuditLogService } from '../audit-log/audit-log.service.js';
 import { CodepushDbService } from '../codepush/codepush-db.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
@@ -19,6 +20,7 @@ export class ServersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly codepushDb: CodepushDbService,
+    private readonly auditLogService: AuditLogService,
   ) {}
 
   async findAll(userId: string) {
@@ -53,7 +55,7 @@ export class ServersService {
       jwtToken = await this.loginToCodePush(input.username, input.password);
     }
 
-    return this.prisma.server.create({
+    const server = await this.prisma.server.create({
       data: {
         name: input.name,
         username: input.username,
@@ -61,6 +63,17 @@ export class ServersService {
         userId,
       },
     });
+
+    // Audit log: server created
+    await this.auditLogService.create({
+      userId,
+      action: 'create_server',
+      entity: 'server',
+      entityId: server.id,
+      detail: `Server created: ${input.name}`,
+    });
+
+    return server;
   }
 
   async update(input: UpdateServerInput, userId: string) {
@@ -79,15 +92,37 @@ export class ServersService {
       data.apiKey = jwtToken;
     }
 
-    return this.prisma.server.update({
+    const updated = await this.prisma.server.update({
       where: { id: input.id },
       data,
     });
+
+    // Audit log: server updated
+    await this.auditLogService.create({
+      userId,
+      action: 'update_server',
+      entity: 'server',
+      entityId: input.id,
+      detail: `Server updated: ${existing.name}`,
+    });
+
+    return updated;
   }
 
   async remove(id: string, userId: string) {
-    await this.findOne(id, userId);
-    return this.prisma.server.delete({ where: { id } });
+    const server = await this.findOne(id, userId);
+    await this.prisma.server.delete({ where: { id } });
+
+    // Audit log: server deleted
+    await this.auditLogService.create({
+      userId,
+      action: 'delete_server',
+      entity: 'server',
+      entityId: id,
+      detail: `Server deleted: ${server.name}`,
+    });
+
+    return true;
   }
 
   /**

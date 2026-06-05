@@ -1,5 +1,6 @@
 // ==========================================
 // HyperPush — Register Page
+// Includes reCAPTCHA v3 verification
 // ==========================================
 
 import { useMutation } from '@apollo/client/react';
@@ -12,6 +13,7 @@ import type { RegisterResponseData } from '@app/types/graphql';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { useRecaptchaToken } from '@app/components/RecaptchaProvider';
 
 interface RegisterFormData {
   name: string;
@@ -26,6 +28,7 @@ export function RegisterPage() {
   const [error, setError] = useState<string | null>(null);
 
   const [registerMutation, { loading }] = useMutation(REGISTER_MUTATION);
+  const { getRecaptchaToken } = useRecaptchaToken();
 
   const {
     register,
@@ -40,12 +43,16 @@ export function RegisterPage() {
     setError(null);
 
     try {
+      // Execute reCAPTCHA (if configured)
+      const recaptchaToken = await getRecaptchaToken('register');
+
       const result = (await registerMutation({
         variables: {
           input: {
             email: data.email,
             password: data.password,
             name: data.name || undefined,
+            recaptchaToken,
           },
         },
       })) as { data?: RegisterResponseData };

@@ -1,7 +1,9 @@
 import * as crypto from 'node:crypto';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import * as otplib from 'otplib';
 
+import { AuditLogService } from '../audit-log/audit-log.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 /**
@@ -13,15 +15,25 @@ import { PrismaService } from '../prisma/prisma.service.js';
 @Injectable()
 export class TwoFactorService {
   private readonly algorithm = 'aes-256-gcm';
+  private readonly encryptionKey: string;
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditLogService: AuditLogService,
+    configService: ConfigService,
+  ) {
+    const key = configService.get<string>('TOTP_ENCRYPTION_KEY');
+    if (!key) {
+      throw new Error('TOTP_ENCRYPTION_KEY environment variable is required');
+    }
+    this.encryptionKey = key;
+  }
 
   /**
    * Derive a 256-bit encryption key from the env secret using SHA-256.
    */
   private getEncryptionKey(): Buffer {
-    const secret = process.env.TOTP_ENCRYPTION_KEY || 'default-dev-key-change-in-production-!!';
-    return crypto.createHash('sha256').update(secret).digest();
+    return crypto.createHash('sha256').update(this.encryptionKey).digest();
   }
 
   /**
@@ -78,6 +90,15 @@ export class TwoFactorService {
       data: { totpSecret: encrypted },
     });
 
+    // Audit log: 2FA setup initiated (secret generated)
+    await this.auditLogService.create({
+      userId,
+      action: 'setup_2fa',
+      entity: 'user',
+      entityId: userId,
+      detail: '2FA secret generated',
+    });
+
     return { secret, uri };
   }
 
@@ -113,6 +134,15 @@ export class TwoFactorService {
       data: { totpEnabled: true },
     });
 
+    // Audit log: 2FA enabled
+    await this.auditLogService.create({
+      userId,
+      action: 'enable_2fa',
+      entity: 'user',
+      entityId: userId,
+      detail: '2FA enabled',
+    });
+
     return true;
   }
 
@@ -136,6 +166,15 @@ export class TwoFactorService {
     await this.prisma.user.update({
       where: { id: userId },
       data: { totpEnabled: false, totpSecret: null },
+    });
+
+    // Audit log: 2FA disabled
+    await this.auditLogService.create({
+      userId,
+      action: 'disable_2fa',
+      entity: 'user',
+      entityId: userId,
+      detail: '2FA disabled',
     });
 
     return true;

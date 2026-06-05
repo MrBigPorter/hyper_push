@@ -2,11 +2,11 @@
 # HyperPush — CI Quality Checks
 # ==========================================
 # 推送到 main/PR 时运行:
-#   安装依赖 → Prisma 生成 → 类型检查 → Lint → 构建验证
+#   安装依赖 → Prisma 生成 → 类型检查 → Lint → 依赖审计 → 构建验证
 #
 # 参考 JoyMini ci.yml 模式:
 #   - 多级缓存 (node_modules, bun)
-#   - 硬门禁: 类型检查 + Lint
+#   - 硬门禁: 类型检查 + Lint + 依赖审计
 # ==========================================
 
 name: CI
@@ -70,6 +70,11 @@ jobs:
         working-directory: backend
         run: npx biome check src/ 2>&1 || echo "Biome not configured, skipping"
 
+      - name: Dependency audit (backend)
+        working-directory: backend
+        run: npm audit --audit-level=high
+        continue-on-error: true
+
   # =========================================
   # Frontend Checks
   # =========================================
@@ -104,6 +109,11 @@ jobs:
         working-directory: frontend
         run: npx tsc --noEmit
 
+      - name: Dependency audit (frontend)
+        working-directory: frontend
+        run: npm audit --audit-level=high
+        continue-on-error: true
+
       - name: Build check
         working-directory: frontend
         run: npx vite build
@@ -125,8 +135,8 @@ jobs:
 
           | Job | Status |
           |-----|--------|
-          | 🔧 Backend (type check + lint) | \${{ needs.backend.result }} |
-          | 🎨 Frontend (type check + build) | \${{ needs.frontend.result }} |
+          | 🔧 Backend (type check + lint + audit) | \${{ needs.backend.result }} |
+          | 🎨 Frontend (type check + audit + build) | \${{ needs.frontend.result }} |
 
           - Branch: \`${{ github.ref_name }}\`
           - Commit: \`${{ github.sha }}\`
