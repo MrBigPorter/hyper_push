@@ -171,6 +171,7 @@ jobs:
         env:
           VITE_API_URL: ${{ vars.API_URL || 'https://cp.hyperpush.org/graphql' }}
           VITE_RECAPTCHA_SITE_KEY: ${{ secrets.RECAPTCHA_SITE_KEY }}
+          VITE_MONITOR_URL: https://monitor.joyminins.com
 
       - name: Create Cloudflare Pages project if not exists
         working-directory: frontend
@@ -336,11 +337,12 @@ jobs:
           set -euo pipefail
 
           # Create a tar archive of all source files
-          echo "Creating archive of: compose.yml compose.codepush.yml deploy/"
+          echo "Creating archive of: compose.yml compose.codepush.yml deploy/compose.prod.yml deploy/scripts/"
           tar czf /tmp/hyperpush-deploy.tar.gz \
             compose.yml \
             compose.codepush.yml \
-            deploy/
+            deploy/compose.prod.yml \
+            deploy/scripts/
 
           echo "Archive size: $(du -h /tmp/hyperpush-deploy.tar.gz | cut -f1)"
 
@@ -431,11 +433,16 @@ jobs:
             JWT_SECRET=${{ secrets.JWT_SECRET }}
             TOKEN_SECRET=${{ secrets.TOKEN_SECRET }}
             TOTP_ENCRYPTION_KEY=${{ secrets.TOTP_ENCRYPTION_KEY }}
-            DATABASE_URL=${{ secrets.DATABASE_URL || 'postgresql://hyperpush:hyperpush123@db:5432/hyperpush' }}
+            DATABASE_URL=${{ secrets.DATABASE_URL || '' }}
+            POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+            MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }}
             PUBLIC_URL=https://${{ secrets.CODEPUSH_DOMAIN }}
             CORS_ORIGINS=https://hyperpush.org
             RECAPTCHA_SECRET_KEY=${{ secrets.RECAPTCHA_SECRET_KEY }}
             RECAPTCHA_ENABLED=true
+            GRAFANA_ADMIN_PASSWORD=${{ secrets.GRAFANA_ADMIN_PASSWORD }}
+            GRAFANA_AUTH_SECRET=${{ secrets.GRAFANA_AUTH_SECRET }}
+            LOG_LEVEL=info
             ENVEOF
 
             echo "========================================"

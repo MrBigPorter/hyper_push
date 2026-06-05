@@ -76,4 +76,4 @@ USER node
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
   CMD wget -qO- http://localhost:3000/graphql >/dev/null 2>&1 || exit 1
 
-CMD ["bun", "dist/main.js"]
+CMD ["sh", "-c", "bunx prisma migrate deploy && bun dist/main.js"]

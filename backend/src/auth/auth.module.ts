@@ -7,6 +7,7 @@ import { CodepushModule } from '../codepush/codepush.module.js';
 import { AuthResolver } from './auth.resolver.js';
 import { AuthService } from './auth.service.js';
 import { JwtStrategy } from './jwt.strategy.js';
+import { SsoController } from './sso.controller.js';
 import { TwoFactorService } from './two-factor.service.js';
 
 @Module({
@@ -29,6 +30,7 @@ import { TwoFactorService } from './two-factor.service.js';
     AuditLogModule,
     CodepushModule,
   ],
+  controllers: [SsoController],
   providers: [AuthService, AuthResolver, JwtStrategy, TwoFactorService],
   exports: [AuthService, TwoFactorService],
 })

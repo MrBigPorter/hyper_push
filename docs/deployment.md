@@ -139,16 +139,18 @@ cat ~/.ssh/hyperpush-deploy
 
 Add these secrets in GitHub → Settings → Secrets and variables → Actions:
 
-| Secret | Description | Example |
-|--------|-------------|---------|
+| Secret | Description | Example / How to Generate |
+|--------|-------------|---------------------------|
 | `SSH_HOST` | VPS IP address | `123.123.123.123` |
 | `SSH_PORT` | SSH port | `22` |
 | `SSH_USERNAME` | SSH user | `root` |
 | `SSH_PRIVATE_KEY` | Deploy SSH private key | `-----BEGIN OPENSSH PRIVATE KEY-----...` |
 | `GITHUB_TOKEN` | GHCR access token (auto-provided) | `${{ secrets.GITHUB_TOKEN }}` |
-| `TOTP_ENCRYPTION_KEY` | 32-hex-char encryption key | `a1b2c3d4e5f6...` |
+| `TOTP_ENCRYPTION_KEY` | 32-hex-char encryption key | `openssl rand -hex 16` |
 | `RECAPTCHA_SECRET_KEY` | Google reCAPTCHA v3 secret | *(from Google reCAPTCHA admin)* |
 | `VITE_RECAPTCHA_SITE_KEY` | Google reCAPTCHA v3 site key | *(from Google reCAPTCHA admin)* |
+| `POSTGRES_PASSWORD` | PostgreSQL password (required!) | `openssl rand -base64 24` |
+| `MYSQL_ROOT_PASSWORD` | CodePush MySQL root password (required!) | `openssl rand -base64 24` |
 
 Generate a random hex string for TOTP encryption:
 
@@ -196,6 +198,17 @@ graph LR
 | [`compose.yml`](/compose.yml) | Base Docker Compose configuration |
 | [`compose.codepush.yml`](/compose.codepush.yml) | CodePush services (MySQL 8.0, Redis 7) |
 | [`deploy/compose.prod.yml`](/deploy/compose.prod.yml) | Production overrides (Nginx, env vars) |
+
+---
+
+> **ℹ️ Monitoring stack extracted to standalone project**
+>
+> The monitoring stack (Loki + Grafana + Promtail) has been extracted to a separate
+> project at [`../infra-platform/`](../infra-platform/) (sibling of this repo).
+>
+> See its [`README.md`](../infra-platform/README.md) for setup and usage instructions.
+> The `GRAFANA_ADMIN_PASSWORD` secret was removed from this project's secrets —
+> manage it in the `infra-platform` project instead.
 
 ---
 

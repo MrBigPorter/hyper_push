@@ -35,7 +35,7 @@ services:
       - "5433:5432"
     environment:
       POSTGRES_USER: hyperpush
-      POSTGRES_PASSWORD: hyperpush123
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-hyperpush123}
       POSTGRES_DB: hyperpush
     volumes:
       - pgdata:/var/lib/postgresql/data
@@ -61,7 +61,7 @@ services:
     env_file:
       - .env
     environment:
-      DATABASE_URL: ${DATABASE_URL:-postgresql://hyperpush:hyperpush123@db:5432/hyperpush}
+      DATABASE_URL: postgresql://hyperpush:${POSTGRES_PASSWORD:-hyperpush123}@db:5432/hyperpush
       NODE_ENV: production
     depends_on:
       db:

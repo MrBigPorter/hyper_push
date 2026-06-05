@@ -2,7 +2,7 @@
 // HyperPush — Sidebar Navigation
 // ==========================================
 
-import { useAppDispatch } from '@app/hooks';
+import { useAppDispatch, useAppSelector } from '@app/hooks';
 import { logout } from '@app/store/slices/authSlice';
 import { useLocation, useNavigate } from '@tanstack/react-router';
 import clsx from 'clsx';
@@ -14,6 +14,7 @@ import {
   ScrollText,
   Server,
   Settings,
+  Terminal,
 } from 'lucide-react';
 import { useCallback } from 'react';
 
@@ -32,16 +33,51 @@ const navItems: NavItem[] = [
   { label: 'Settings', path: '/dashboard/settings', icon: Settings },
 ];
 
+const MONITOR_URL =
+  import.meta.env.VITE_MONITOR_URL ?? 'https://monitor.joyminins.com';
+
 export function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useAppDispatch();
+  const token = useAppSelector((state) => state.auth.token);
 
   const isActive = useCallback((path: string) => location.pathname === path, [location.pathname]);
 
   const handleLogout = () => {
     dispatch(logout());
     navigate({ to: '/' });
+  };
+
+  const handleOpenCodePushLogs = async () => {
+    try {
+      const res = await fetch('/api/auth/grafana-token', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error('Failed to get Grafana token');
+      const data = await res.json();
+
+      // Build Grafana Explore URL with pre-filtered LogQL query for CodePush servers
+      const exploreState = {
+        datasource: 'Loki',
+        queries: [
+          {
+            refId: 'A',
+            expr: '{container_name=~".*codepush-server.*"}',
+          },
+        ],
+        range: {
+          from: 'now-1h',
+          to: 'now',
+        },
+      };
+      const leftParam = encodeURIComponent(JSON.stringify(exploreState));
+      const exploreUrl = `${MONITOR_URL}/explore?orgId=1&left=${leftParam}&token=${data.token}`;
+      window.location.href = exploreUrl;
+    } catch {
+      // Fallback
+      window.open(MONITOR_URL, '_blank', 'noopener,noreferrer');
+    }
   };
 
   return (
@@ -78,6 +114,16 @@ export function Sidebar() {
             </button>
           );
         })}
+
+        {/* External: CodePush Logs (SSO) */}
+        <button
+          type="button"
+          onClick={handleOpenCodePushLogs}
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-dark-800"
+        >
+          <Terminal className="h-5 w-5 shrink-0" aria-hidden="true" />
+          <span>CodePush Logs</span>
+        </button>
       </nav>
 
       {/* Logout */}
