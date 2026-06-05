@@ -73,7 +73,7 @@ export function Sidebar() {
       };
       const leftParam = encodeURIComponent(JSON.stringify(exploreState));
       const exploreUrl = `${MONITOR_URL}/explore?orgId=1&left=${leftParam}&token=${data.token}`;
-      window.location.href = exploreUrl;
+      window.open(exploreUrl, '_blank', 'noopener,noreferrer');
     } catch {
       // Fallback
       window.open(MONITOR_URL, '_blank', 'noopener,noreferrer');
