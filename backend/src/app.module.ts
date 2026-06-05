@@ -31,6 +31,7 @@ import { ServersModule } from './servers/servers.module.js';
       autoSchemaFile: 'schema.gql',
       sortSchema: true,
       playground: false,
+      introspection: process.env.NODE_ENV !== 'production',
       validationRules: [depthLimit(7)],
       buildSchemaOptions: {
         // biome-ignore lint/suspicious/noExplicitAny: NestJS GraphQL scalarsMap requires this cast

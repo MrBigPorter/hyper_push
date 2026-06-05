@@ -71,6 +71,8 @@ COPY --from=builder /app/prisma.config.ts ./
 
 EXPOSE 3000
 
+USER node
+
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
   CMD wget -qO- http://localhost:3000/graphql >/dev/null 2>&1 || exit 1
 
