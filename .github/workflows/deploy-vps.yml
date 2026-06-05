@@ -436,7 +436,7 @@ jobs:
             JWT_SECRET=${{ secrets.JWT_SECRET }}
             TOKEN_SECRET=${{ secrets.TOKEN_SECRET }}
             TOTP_ENCRYPTION_KEY=${{ secrets.TOTP_ENCRYPTION_KEY }}
-            DATABASE_URL=${{ secrets.DATABASE_URL || '' }}
+            DATABASE_URL=${{ secrets.DATABASE_URL }}
             POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
             MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }}
             PUBLIC_URL=https://${{ secrets.CODEPUSH_DOMAIN }}

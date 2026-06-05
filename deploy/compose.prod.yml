@@ -41,7 +41,10 @@ services:
     env_file:
       - .env
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-hyperpush}:${POSTGRES_PASSWORD:?error:POSTGRES_PASSWORD is required}@db:5432/${POSTGRES_DB:-hyperpush}
+      # DATABASE_URL must be set via .env (from GitHub Secret) with URL-encoded password
+      # The password contains '/' which breaks URL parsing, so encode as %2F
+      # Example: postgresql://hyperpush:zJooCIfrmxnHNO4H55eEG%2FeMBDaXEZFd@db:5432/hyperpush
+      DATABASE_URL: ${DATABASE_URL}
       NODE_ENV: production
       JWT_SECRET: ${JWT_SECRET}
       # CodePush 管理端入口 (由 Lucky nginx 将 cp.hyperpush.org/codepush/ 代理到本服务)
