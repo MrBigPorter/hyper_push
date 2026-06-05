@@ -7,6 +7,7 @@ import { logout } from '@app/store/slices/authSlice';
 import { useLocation, useNavigate } from '@tanstack/react-router';
 import clsx from 'clsx';
 import {
+  BookOpen,
   Cloud,
   KeyRound,
   LayoutDashboard,
@@ -26,6 +27,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+  { label: 'Install Guide', path: '/dashboard/install-guide', icon: BookOpen },
   { label: 'Servers', path: '/dashboard/servers', icon: Server },
   { label: 'API Keys', path: '/dashboard/api-keys', icon: KeyRound },
   { label: 'Audit Logs', path: '/dashboard/audit-logs', icon: ScrollText },

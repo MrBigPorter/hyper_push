@@ -13,6 +13,7 @@ import { Route as DashboardHomeRoute } from './routes/dashboard/home';
 import { Route as DashboardServerDetailRoute } from './routes/dashboard/server-detail';
 import { Route as DashboardServersRoute } from './routes/dashboard/servers';
 import { Route as DashboardSettingsRoute } from './routes/dashboard/settings';
+import { Route as DashboardInstallGuideRoute } from './routes/dashboard/install-guide';
 import { Route as IndexRoute } from './routes/index';
 import { Route as RegisterRoute } from './routes/register';
 
@@ -28,6 +29,7 @@ const routeTree = RootRoute.addChildren([
     DashboardCodepushRoute,
     DashboardAppDetailRoute,
     DashboardSettingsRoute,
+    DashboardInstallGuideRoute,
   ]),
 ]);
 

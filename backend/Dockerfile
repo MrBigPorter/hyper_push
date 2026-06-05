@@ -72,6 +72,9 @@ COPY --from=builder /app/package.json   ./
 COPY --from=builder /app/prisma         ./prisma
 COPY --from=builder /app/prisma.config.ts ./
 
+# Grant node user ownership so NestJS can write schema.gql
+RUN chown -R node:node /app
+
 EXPOSE 3000
 
 USER node
