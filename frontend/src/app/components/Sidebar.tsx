@@ -36,7 +36,7 @@ const navItems: NavItem[] = [
 ];
 
 const MONITOR_URL =
-  import.meta.env.VITE_MONITOR_URL ?? 'https://monitor.joyminins.com';
+  import.meta.env.VITE_MONITOR_URL ?? 'https://monitor.joyminis.com';
 
 export function Sidebar() {
   const navigate = useNavigate();

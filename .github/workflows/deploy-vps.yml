@@ -174,7 +174,7 @@ jobs:
         env:
           VITE_API_URL: ${{ vars.API_URL || 'https://cp.hyperpush.org/graphql' }}
           VITE_RECAPTCHA_SITE_KEY: ${{ secrets.RECAPTCHA_SITE_KEY }}
-          VITE_MONITOR_URL: https://monitor.joyminins.com
+          VITE_MONITOR_URL: https://monitor.joyminis.com
 
       - name: Create Cloudflare Pages project if not exists
         working-directory: frontend
