@@ -83,6 +83,7 @@ jobs:
         working-directory: backend
         env:
           JWT_SECRET: dummy-validate-di-secret
+          TOTP_ENCRYPTION_KEY: dummy-validate-di-totp-key
         run: bun scripts/validate-di.mts
 
       - name: Lint backend

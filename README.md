@@ -1,15 +1,15 @@
 # 🚀 HyperPush — CodePush Universal Management Console
 
 [![CI](https://github.com/MrBigPorter/hyperpush/actions/workflows/ci.yml/badge.svg)](https://github.com/MrBigPorter/hyperpush/actions/workflows/ci.yml)
-[![Deploy to VPS](https://github.com/MrBigPorter/hyperpush/actions/workflows/deploy-vps.yml/badge.svg)](https://github.com/MrBigPorter/hyperpush/actions/workflows/deploy-vps.yml)
+[![Deploy to AWS](https://github.com/MrBigPorter/hyperpush/actions/workflows/deploy-aws.yml/badge.svg)](https://github.com/MrBigPorter/hyperpush/actions/workflows/deploy-aws.yml)
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)
 ![React](https://img.shields.io/badge/React-20232A?logo=react&logoColor=61DAFB)
 ![NestJS](https://img.shields.io/badge/NestJS-E0234E?logo=nestjs&logoColor=white)
 ![GraphQL](https://img.shields.io/badge/GraphQL-E10098?logo=graphql&logoColor=white)
 ![Prisma](https://img.shields.io/badge/Prisma-2D3748?logo=prisma&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)
+![AWS](https://img.shields.io/badge/AWS-FF9900?logo=amazonwebservices&logoColor=white)
 
-**HyperPush** is a full-stack admin console for managing multiple `code-push-server` instances through a unified **Backend-for-Frontend (BFF)** GraphQL gateway.
+**HyperPush** is a full-stack admin console for managing multiple `code-push-server` instances through a unified **Backend-for-Frontend (BFF)** GraphQL gateway, deployed on **AWS ECS Fargate**.
 
 ---
 
@@ -34,7 +34,7 @@ Browser (React 19) ──GraphQL──► NestJS 11 BFF ──REST──► code
 
 - **BFF pattern**: Frontend speaks GraphQL; BFF proxies REST to CodePush servers with transparent JWT injection
 - **3-layer state**: Redux Toolkit (UI) + Apollo Client (GraphQL) + TanStack Query (REST) — strictly separated
-- **Dual CI/CD**: Same Docker images deploy to VPS (Docker Compose) and AWS ECS (CDK)
+- **Infrastructure as Code**: AWS CDK manages all cloud resources (ECS Fargate, RDS, ALB, ECR)
 
 ---
 
@@ -44,9 +44,9 @@ Browser (React 19) ──GraphQL──► NestJS 11 BFF ──REST──► code
 |-------|------------|
 | **Frontend** | React 19, TanStack Router, shadcn/ui, Tailwind CSS 4, Apollo Client, Redux Toolkit |
 | **Backend** | NestJS 11, Apollo Server 5 (code-first), Passport.js JWT, Prisma 7 |
-| **Database** | SQLite (dev), PostgreSQL 16 (prod) |
-| **Infrastructure** | Docker Compose (VPS), AWS CDK (ECS Fargate, RDS, Redis) |
-| **CI/CD** | GitHub Actions, GHCR, npm audit, Dependabot |
+| **Database** | SQLite (dev), PostgreSQL 16 (prod on RDS) |
+| **Infrastructure** | AWS CDK (ECS Fargate, RDS, ALB, ECR, ElastiCache) |
+| **CI/CD** | GitHub Actions, ECR, npm audit, Dependabot |
 
 ---
 
@@ -96,7 +96,7 @@ make dev-up                             # Start all services
 | [**Getting Started**](docs/getting-started.md) | Setup guide in 5 minutes |
 | [**Architecture**](docs/architecture.md) | System design, data flow, component interaction |
 | [**Development**](docs/development.md) | Backend/frontend dev workflow, database, testing |
-| [**Deployment**](docs/deployment.md) | VPS Docker Compose deployment, SSH, secrets |
+| [**Deployment**](docs/deployment.md) | AWS ECS Fargate deployment via CDK |
 | [**Security**](docs/security.md) | All security features, configuration, hardening |
 | [**API**](docs/api.md) | GraphQL queries, mutations, input types, models |
 | [**CI/CD**](docs/cicd.md) | GitHub Actions pipelines, Docker builds |
@@ -125,6 +125,6 @@ This project is private and not licensed for public use.
 
 <div align="center">
 
-**Built with** ❤️ **using** React · NestJS · GraphQL · Prisma · Docker
+**Built with** ❤️ **using** React · NestJS · GraphQL · Prisma · AWS
 
 </div>
