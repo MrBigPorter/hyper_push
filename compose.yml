@@ -61,7 +61,7 @@ services:
     env_file:
       - .env
     environment:
-      DATABASE_URL: postgresql://hyperpush:${POSTGRES_PASSWORD:-hyperpush123}@db:5432/hyperpush
+      DATABASE_URL: postgresql://hyperpush:${POSTGRES_PASSWORD}@db:5432/hyperpush
       NODE_ENV: production
     volumes:
       - prisma_client:/app/node_modules/.prisma

@@ -10,7 +10,7 @@
 #   3. 设置环境变量:
 #      export TOKEN_SECRET=$(openssl rand -base64 48 | tr -dc 'A-Za-z0-9' | head -c63)
 #      export JWT_SECRET="your-strong-jwt-secret"
-#      export DATABASE_URL="postgresql://hyperpush:hyperpush123@db:5432/hyperpush"
+#      export DATABASE_URL="postgresql://hyperpush:CHANGE_ME@db:5432/hyperpush"
 # ==========================================
 # ★ 域名架构（与 compose.yml 配合使用）:
 #   - 管理后台: https://hyperpush.org/                  (Cloudflare Pages / VPS)

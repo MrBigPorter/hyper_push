@@ -145,7 +145,7 @@ Add these secrets in GitHub → Settings → Secrets and variables → Actions:
 | `SSH_PORT` | SSH port | `22` |
 | `SSH_USERNAME` | SSH user | `root` |
 | `SSH_PRIVATE_KEY` | Deploy SSH private key | `-----BEGIN OPENSSH PRIVATE KEY-----...` |
-| `DATABASE_URL` | PostgreSQL connection string | `postgresql://hyperpush:password@db:5432/hyperpush` |
+| `DATABASE_URL` | PostgreSQL connection string | `postgresql://hyperpush:CHANGE_ME@db:5432/hyperpush` |
 | `POSTGRES_PASSWORD` | PostgreSQL password | `openssl rand -base64 24` |
 | `MYSQL_ROOT_PASSWORD` | CodePush MySQL root password | `openssl rand -base64 24` |
 | `JWT_SECRET` | JWT signing secret | `openssl rand -hex 64` |
