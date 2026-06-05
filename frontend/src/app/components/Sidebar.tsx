@@ -63,7 +63,7 @@ export function Sidebar() {
         queries: [
           {
             refId: 'A',
-            expr: '{container_name=~".*codepush-server.*"}',
+            expr: '{container=~".*codepush.*"}',
           },
         ],
         range: {
