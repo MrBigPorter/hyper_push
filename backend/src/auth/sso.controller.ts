@@ -18,7 +18,7 @@ export class SsoController {
    * The frontend redirects the user to Grafana with this token in the URL.
    * Nginx auth_request forwards the token to auth-service for validation.
    *
-   * Returns: { token: "eyJhbGci..." }  (expires in 30 seconds)
+   * Returns: { token: "eyJhbGci..." }  (expires in 24 hours)
    */
   @Get('grafana-token')
   async getGrafanaToken(@Req() req: { user: { email: string } }) {
@@ -29,7 +29,7 @@ export class SsoController {
     }
 
     // Sign with GRAFANA_AUTH_SECRET (different from the app's JWT_SECRET)
-    const token = this.jwtService.sign({ email: req.user.email }, { secret, expiresIn: '30s' });
+    const token = this.jwtService.sign({ email: req.user.email }, { secret, expiresIn: '24h' });
 
     return { token };
   }
