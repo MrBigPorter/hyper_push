@@ -154,17 +154,18 @@ export class CodepushService {
     return result;
   }
 
-  /** POST /accessKeys — requires { name, ttl } */
+  /** POST /accessKeys — requires { friendlyName, ttl } */
   async createAccessKey(
     serverId: string,
     friendlyName: string,
-    _createdBy?: string,
+    createdBy?: string,
     ttl?: number,
     description?: string,
   ): Promise<unknown> {
     const body: Record<string, unknown> = {
-      name: friendlyName,
+      friendlyName,
     };
+    if (createdBy !== undefined) body.createdBy = createdBy;
     // code-push-server accepts `ttl` (in days). Default to 365 days.
     if (ttl !== undefined) body.ttl = ttl;
     if (description !== undefined) body.description = description;
