@@ -154,21 +154,19 @@ export class CodepushService {
     return result;
   }
 
-  /** POST /accessKeys — requires { createdBy, friendlyName, description? } */
+  /** POST /accessKeys — requires { name, ttl } */
   async createAccessKey(
     serverId: string,
     friendlyName: string,
-    createdBy?: string,
-    _ttl?: number,
+    _createdBy?: string,
+    ttl?: number,
     description?: string,
   ): Promise<unknown> {
     const body: Record<string, unknown> = {
-      createdBy: createdBy || 'hyperpush',
-      friendlyName,
+      name: friendlyName,
     };
-    // NOTE: code-push-server does NOT accept `ttl` in the request body
-    // (class-validator whitelist rejects unknown properties).
-    // TTL is configured server-side via `config.accessKeyTTL` or defaults.
+    // code-push-server accepts `ttl` (in days). Default to 365 days.
+    if (ttl !== undefined) body.ttl = ttl;
     if (description !== undefined) body.description = description;
 
     return this.fetchWithAuth(serverId, 'POST', '/accessKeys', body);

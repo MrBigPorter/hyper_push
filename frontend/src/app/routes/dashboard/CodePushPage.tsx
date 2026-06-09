@@ -194,7 +194,7 @@ export function CodePushPage() {
               </h4>
               <div className="space-y-1">
                 <CodeBlock command="npm install -g code-push-standalone" />
-                <CodeBlock command="code-push-standalone login https://cp.hyperpush.org --accessKey YOUR_ACCESS_KEY" />
+                <CodeBlock command="code-push-standalone login https://cp.hyperpush.org/codepush --accessKey YOUR_ACCESS_KEY" />
               </div>
               <p className="mt-1">
                 Access Keys can be created on the server detail page under <strong>CodePush Access Keys</strong>.

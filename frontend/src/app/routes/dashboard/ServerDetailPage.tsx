@@ -412,8 +412,14 @@ export function ServerDetailPage() {
 
         <div className="mt-4">
           <p className="mb-3 text-sm text-gray-500 dark:text-gray-400">
-            Copy the login command to authenticate the <code className="rounded bg-gray-100 px-1 py-0.5 text-xs dark:bg-dark-800">code-push-standalone</code> CLI with your self-hosted CodePush server. The command will create an access key automatically and include it in the copied text.
+            First install the CLI, then copy the login command to authenticate with your self-hosted CodePush server. The command will create an access key automatically and include it in the copied text.
           </p>
+          <div className="mb-3 rounded-lg bg-gray-50 p-3 dark:bg-dark-800">
+            <p className="mb-1 text-xs font-medium text-gray-500 dark:text-gray-400">Step 1: Install CLI</p>
+            <code className="block break-all rounded bg-white px-2 py-1 text-xs font-mono dark:bg-dark-900">
+              npm install -g code-push-standalone
+            </code>
+          </div>
 
           {loginCommand && (
             <div className="mb-3 rounded-lg border border-green-200 bg-green-50 p-3 dark:border-green-800 dark:bg-green-900/20">
@@ -469,7 +475,7 @@ export function ServerDetailPage() {
                 }
 
                 if (keyValue) {
-                  const cmd = `code-push-standalone login https://cp.hyperpush.org --accessKey ${keyValue}`;
+                  const cmd = `code-push-standalone login https://cp.hyperpush.org/codepush --accessKey ${keyValue}`;
                   setLoginCommand(cmd);
                   await navigator.clipboard.writeText(cmd);
                 } else {
