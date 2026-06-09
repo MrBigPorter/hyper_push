@@ -91,9 +91,7 @@ export function Sidebar() {
     <aside className="flex h-screen w-64 flex-col border-r border-gray-200 bg-white dark:border-dark-700 dark:bg-dark-900">
       {/* Logo */}
       <div className="flex items-center gap-3 border-b border-gray-200 px-6 py-5 dark:border-dark-700">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-600">
-          <Cloud className="h-5 w-5 text-white" aria-hidden="true" />
-        </div>
+        <img src="/logo.png" alt="HyperPush" className="h-9 w-9" />
         <div>
           <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100">HyperPush</h1>
           <p className="text-xs text-gray-500 dark:text-gray-400">Management Console</p>

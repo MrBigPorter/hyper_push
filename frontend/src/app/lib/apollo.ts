@@ -6,7 +6,7 @@ import { ApolloClient, ApolloLink, HttpLink, InMemoryCache } from '@apollo/clien
 
 const AUTH_TOKEN_KEY = 'hyperpush_token';
 
-/** 从 localStorage 读取 JWT token */
+/** Read JWT token from localStorage */
 function getToken(): string | null {
   if (typeof window === 'undefined') return null;
   return localStorage.getItem(AUTH_TOKEN_KEY);

@@ -12,11 +12,15 @@ import {
 } from '@/codepush/dto';
 import { GqlAuthGuard } from '../auth/guards/gql-auth.guard.js';
 import { CodepushService } from './codepush.service.js';
+import { CodepushGithubService } from './codepush-github.service.js';
 
 @UseGuards(GqlAuthGuard)
 @Resolver()
 export class CodepushResolver {
-  constructor(private readonly codepushService: CodepushService) {}
+  constructor(
+    private readonly codepushService: CodepushService,
+    private readonly codepushGithubService: CodepushGithubService,
+  ) {}
 
   // ── Auth ───────────────────────────────────────────────────────────────
 
@@ -249,5 +253,18 @@ export class CodepushResolver {
     @Args('deploymentName') deploymentName: string,
   ) {
     return this.codepushService.deploymentMetrics(serverId, appName, deploymentName);
+  }
+
+  // ── GitHub Actions Trigger ──────────────────────────────────────────────
+
+  @Mutation(() => Boolean)
+  async triggerCodepushRelease(
+    @Args('serverId') _serverId: string,
+    @Args('appName') _appName: string,
+    @Args('deploymentName') deploymentName: string,
+    @Args('description', { nullable: true }) description?: string,
+  ) {
+    const environment = deploymentName.toLowerCase() === 'production' ? 'production' : 'staging';
+    return this.codepushGithubService.triggerWorkflowDispatch(environment, description);
   }
 }

@@ -10,11 +10,34 @@ import {
   CODEPUSH_APPS,
   CODEPUSH_DEPLOYMENTS,
   CODEPUSH_RELEASE_HISTORY,
+  PROMOTE_CODEPUSH_RELEASE,
+  ROLLBACK_CODEPUSH_RELEASE,
+  TRIGGER_CODEPUSH_RELEASE,
 } from '@app/lib/graphql';
 import { useNavigate, useParams } from '@tanstack/react-router';
-import { ArrowLeft, Copy, Layers, Package, RotateCcw, Smartphone } from 'lucide-react';
+import {
+  ArrowLeft,
+  Copy,
+  Flame,
+  Layers,
+  Package,
+  RotateCcw,
+  Smartphone,
+  Upload,
+  Undo2,
+  Pencil,
+  Loader2,
+} from 'lucide-react';
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -99,6 +122,18 @@ function AppDetailCard({
   const appName = String(app.name ?? '');
   const appPlatform = String(app.os ?? app.platform ?? 'N/A');
 
+  // ── Dialogs ──
+  const [promoteDialog, setPromoteDialog] = useState<{
+    from: string;
+    to: string;
+  } | null>(null);
+  const [hotFixDialog, setHotFixDialog] = useState<{
+    deploymentName: string;
+    description: string;
+  } | null>(null);
+  const [hotFixLoading, setHotFixLoading] = useState(false);
+
+  // ── Queries ──
   const { data: deploymentsData, loading: deploysLoading } = useQuery(CODEPUSH_DEPLOYMENTS, {
     variables: { serverId, appName },
   });
@@ -111,6 +146,19 @@ function AppDetailCard({
     },
     skip: !activeDeployment,
   });
+
+  // ── Mutations ──
+  const [promoteRelease] = useMutation(PROMOTE_CODEPUSH_RELEASE, {
+    refetchQueries: [
+      { query: CODEPUSH_RELEASE_HISTORY, variables: { serverId, appName, deploymentName: activeDeployment ?? '' } },
+    ],
+  });
+  const [rollbackRelease] = useMutation(ROLLBACK_CODEPUSH_RELEASE, {
+    refetchQueries: [
+      { query: CODEPUSH_RELEASE_HISTORY, variables: { serverId, appName, deploymentName: activeDeployment ?? '' } },
+    ],
+  });
+  const [triggerHotFix] = useMutation(TRIGGER_CODEPUSH_RELEASE);
 
   const deployments = (
     Array.isArray((deploymentsData as Record<string, unknown>)?.codepushDeployments)
@@ -178,14 +226,31 @@ function AppDetailCard({
                             {String(dep.name ?? '') === 'Production' ? 'Live' : 'Testing'}
                           </Badge>
                         </div>
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => onSetActiveDeployment(String(dep.name ?? ''))}
-                        >
-                          <Package className="mr-1 h-4 w-4" />
-                          View Releases
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          {String(dep.name ?? '') === 'Staging' && (
+                            <Button
+                              variant="primary"
+                              size="sm"
+                              onClick={() =>
+                                setPromoteDialog({
+                                  from: 'Staging',
+                                  to: 'Production',
+                                })
+                              }
+                            >
+                              <Upload className="mr-1 h-4 w-4" />
+                              Promote to Production
+                            </Button>
+                          )}
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => onSetActiveDeployment(String(dep.name ?? ''))}
+                          >
+                            <Package className="mr-1 h-4 w-4" />
+                            View Releases
+                          </Button>
+                        </div>
                       </div>
                       {depKey && (
                         <div className="mt-2 flex items-center gap-2">
@@ -314,6 +379,44 @@ function AppDetailCard({
                         </span>
                         {createdAt && <span>{new Date(createdAt).toLocaleString()}</span>}
                       </div>
+
+                      {/* ── Action Buttons ── */}
+                      <div className="mt-3 flex items-center gap-2 border-t border-gray-100 pt-3 dark:border-dark-700">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={async () => {
+                            try {
+                              await rollbackRelease({
+                                variables: {
+                                  serverId,
+                                  appName,
+                                  deploymentName: activeDeployment,
+                                  label,
+                                },
+                              });
+                            } catch (e) {
+                              console.error('Rollback failed', e);
+                            }
+                          }}
+                        >
+                          <Undo2 className="mr-1 h-3.5 w-3.5" />
+                          Rollback
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() =>
+                            setHotFixDialog({
+                              deploymentName: activeDeployment ?? '',
+                              description: `Hot fix: ${label}`,
+                            })
+                          }
+                        >
+                          <Flame className="mr-1 h-3.5 w-3.5" />
+                          Hot Fix
+                        </Button>
+                      </div>
                     </div>
                   );
                 })}
@@ -323,6 +426,123 @@ function AppDetailCard({
         </TabsContent>
 
       </Tabs>
+
+      {/* ── Promote Dialog ── */}
+      <Dialog
+        open={promoteDialog !== null}
+        onOpenChange={(open) => {
+          if (!open) setPromoteDialog(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Promote Release</DialogTitle>
+            <DialogDescription>
+              Promote the latest {promoteDialog?.from} release to {promoteDialog?.to}?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setPromoteDialog(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              onClick={async () => {
+                try {
+                  await promoteRelease({
+                    variables: {
+                      input: {
+                        serverId,
+                        appName,
+                        sourceDeploymentName: promoteDialog?.from,
+                        destDeploymentName: promoteDialog?.to,
+                      },
+                    },
+                  });
+                  setPromoteDialog(null);
+                } catch (e) {
+                  console.error('Promote failed', e);
+                }
+              }}
+            >
+              <Upload className="mr-1 h-4 w-4" />
+              Promote
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Hot Fix Dialog ── */}
+      <Dialog
+        open={hotFixDialog !== null}
+        onOpenChange={(open) => {
+          if (!open) setHotFixDialog(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>🔥 Trigger Hot Fix</DialogTitle>
+            <DialogDescription>
+              This will trigger a GitHub Actions workflow to rebuild and release via CI/CD.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-2">
+            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Description
+            </label>
+            <input
+              type="text"
+              value={hotFixDialog?.description ?? ''}
+              onChange={(e) =>
+                setHotFixDialog((prev) =>
+                  prev ? { ...prev, description: e.target.value } : null,
+                )
+              }
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-dark-600 dark:bg-dark-800 dark:text-gray-200"
+              placeholder="e.g., Critical bug fix for login crash"
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => setHotFixDialog(null)}
+              disabled={hotFixLoading}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              disabled={hotFixLoading}
+              onClick={async () => {
+                if (!hotFixDialog) return;
+                setHotFixLoading(true);
+                try {
+                  await triggerHotFix({
+                    variables: {
+                      serverId,
+                      appName,
+                      deploymentName: hotFixDialog.deploymentName,
+                      description: hotFixDialog.description,
+                    },
+                  });
+                  setHotFixDialog(null);
+                } catch (e) {
+                  console.error('Hot fix trigger failed', e);
+                } finally {
+                  setHotFixLoading(false);
+                }
+              }}
+            >
+              {hotFixLoading ? (
+                <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+              ) : (
+                <Flame className="mr-1 h-4 w-4" />
+              )}
+              {hotFixLoading ? 'Triggering...' : 'Trigger Hot Fix'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

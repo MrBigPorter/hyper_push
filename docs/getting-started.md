@@ -24,7 +24,17 @@ node --version
 
 ---
 
-## ⚡ Quick Start
+## 💨 一键部署（生产）
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/MrBigPorter/hyperpush/main/scripts/setup.sh)
+```
+
+脚本会问几个问题，自动生成所有密钥和配置。详见 [`Deployment Guide`](deployment.md)。
+
+---
+
+## ⚡ Quick Start (Local Development)
 
 ### 1. Clone & Install
 

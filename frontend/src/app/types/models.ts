@@ -1,16 +1,16 @@
 // ==========================================
 // HyperPush — Data Models (frontend types)
-// 匹配 Prisma schema，不含 password 字段
-// 日期使用 string (ISO 8601)
+// Maps to Prisma schema, excludes password field
+// Dates use string (ISO 8601)
 // ==========================================
 
 /** Theme mode for light/dark toggle */
 export type ThemeMode = 'light' | 'dark';
 
-/** 用户角色 */
+/** User role */
 export type UserRole = 'admin' | 'viewer' | 'developer';
 
-/** 用户 */
+/** User */
 export interface User {
   id: string;
   email: string;
@@ -25,10 +25,10 @@ export interface User {
   updatedAt: string;
 }
 
-/** 服务器状态 */
+/** Server status */
 export type ServerStatus = 'online' | 'offline' | 'unknown';
 
-/** 服务器 */
+/** Server */
 export interface Server {
   id: string;
   name: string;
@@ -40,7 +40,7 @@ export interface Server {
   updatedAt: string;
 }
 
-/** API 密钥 */
+/** API Key */
 export interface ApiKey {
   id: string;
   name: string;
@@ -52,13 +52,13 @@ export interface ApiKey {
   lastUsed: string | null;
 }
 
-/** 审计日志操作类型 */
+/** Audit log action type */
 export type AuditAction = 'create' | 'update' | 'delete' | 'login' | 'logout' | 'api_call';
 
-/** 审计日志实体类型 */
+/** Audit log entity type */
 export type AuditEntity = 'user' | 'server' | 'api_key' | 'app' | 'deployment' | 'release';
 
-/** 审计日志 */
+/** Audit log */
 export interface AuditLog {
   id: string;
   action: AuditAction;
@@ -72,10 +72,10 @@ export interface AuditLog {
 
 // ─── CodePush ─────────────────────────────────────
 
-/** CodePush 应用平台 */
+/** CodePush app platform */
 export type AppPlatform = 'ios' | 'android' | 'both';
 
-/** CodePush 应用 */
+/** CodePush app */
 export interface CodePushApp {
   id: string;
   name: string;
@@ -85,10 +85,10 @@ export interface CodePushApp {
   updatedAt: string;
 }
 
-/** CodePush 部署环境 */
+/** CodePush deployment environment */
 export type DeploymentEnv = 'Staging' | 'Production';
 
-/** CodePush 部署 */
+/** CodePush deployment */
 export interface Deployment {
   id: string;
   name: DeploymentEnv;
@@ -97,10 +97,10 @@ export interface Deployment {
   updatedAt: string;
 }
 
-/** CodePush 发布状状态 */
+/** CodePush release status */
 export type ReleaseStatus = 'active' | 'rolled_back';
 
-/** CodePush 发布 */
+/** CodePush release */
 export interface Release {
   id: string;
   appVersion: string;
@@ -117,10 +117,10 @@ export interface Release {
   createdAt: string;
 }
 
-/** CodePush 访问密钥类型 */
+/** CodePush access key type */
 export type AccessKeyType = 'deployment' | 'viewer';
 
-/** CodePush 访问密钥 */
+/** CodePush access key */
 export interface AccessKey {
   id: string;
   name: string;
@@ -135,7 +135,7 @@ export interface AccessKey {
 
 // ─── Shared ───────────────────────────────────────
 
-/** 分页信息 */
+/** Pagination info */
 export interface PaginationInfo {
   total: number;
   page: number;
@@ -143,7 +143,7 @@ export interface PaginationInfo {
   totalPages: number;
 }
 
-/** 分页用户列表 (admin) */
+/** Paginated user list (admin) */
 export interface PaginatedUsers {
   items: User[];
   total: number;
@@ -151,16 +151,16 @@ export interface PaginatedUsers {
   limit: number;
 }
 
-/** 分页查询输入 */
+/** Pagination query input */
 export interface PaginationInput {
   page?: number;
   pageSize?: number;
 }
 
-/** 排序方向 */
+/** Sort direction */
 export type SortDirection = 'asc' | 'desc';
 
-/** 通用列表响应 */
+/** Generic list response */
 export interface ListResponse<T> {
   items: T[];
   pagination: PaginationInfo;

@@ -137,42 +137,42 @@ cat ~/.ssh/hyperpush-deploy
 
 ## 🔒 GitHub Secrets Configuration
 
-Add these secrets in GitHub → Settings → Secrets and variables → Actions:
+### 快速方式（推荐）
 
-| Secret | Description | Example / How to Generate |
-|--------|-------------|---------------------------|
+运行 [`scripts/setup.sh`](/scripts/setup.sh) 一键生成所有配置：
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/MrBigPorter/hyperpush/main/scripts/setup.sh)
+```
+
+脚本会自动生成所有随机密钥并打印需要添加到 GitHub Secrets 的列表。
+
+### 手动方式
+
+如果选择手动配置，只需添加以下 **必需** Secrets：
+
+| Secret | Description | Example |
+|--------|-------------|---------|
 | `SSH_HOST` | VPS IP address | `123.123.123.123` |
 | `SSH_PORT` | SSH port | `22` |
 | `SSH_USERNAME` | SSH user | `root` |
 | `SSH_PRIVATE_KEY` | Deploy SSH private key | `-----BEGIN OPENSSH PRIVATE KEY-----...` |
-| `DATABASE_URL` | PostgreSQL connection string | `postgresql://hyperpush:CHANGE_ME@db:5432/hyperpush` |
-| `POSTGRES_PASSWORD` | PostgreSQL password | `openssl rand -base64 24` |
-| `MYSQL_ROOT_PASSWORD` | CodePush MySQL root password | `openssl rand -base64 24` |
-| `JWT_SECRET` | JWT signing secret | `openssl rand -hex 64` |
-| `TOKEN_SECRET` | Additional token signing secret | `openssl rand -hex 32` |
-| `TOTP_ENCRYPTION_KEY` | AES-256-GCM key (32 hex chars) | `openssl rand -hex 16` |
-| `GRAFANA_AUTH_SECRET` | Grafana SSO JWT signing secret (must match `infra-platform/.env`) | `openssl rand -hex 32` |
-| `GRAFANA_ADMIN_PASSWORD` | Grafana admin password | `openssl rand -base64 24` |
-| `RECAPTCHA_SECRET_KEY` | Google reCAPTCHA v3 secret | *(from Google reCAPTCHA admin)* |
-| `VITE_RECAPTCHA_SITE_KEY` | Google reCAPTCHA v3 site key | *(from Google reCAPTCHA admin)* |
 | `CODEPUSH_DOMAIN` | CodePush server domain | `cp.yourdomain.com` |
 | `CONSOLE_DOMAIN` | HyperPush console domain | `console.yourdomain.com` |
-| `SERVER_IP` | VPS IP address (duplicate for clarity) | `123.123.123.123` |
-| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare account ID (for frontend deploy) | *(from Cloudflare dashboard)* |
-| `CLOUDFLARE_API_TOKEN` | Cloudflare API token | *(from Cloudflare dashboard)* |
-| `VITE_API_URL` | Frontend API base URL | `https://console.yourdomain.com/graphql` |
-| `VITE_MONITOR_URL` | Grafana/Monitor URL | `https://monitor.yourdomain.com` |
+
+**可选 Secrets**（不配置则对应功能自动禁用）：
+
+| Secret | Description |
+|--------|-------------|
+| `RECAPTCHA_SECRET_KEY` | Google reCAPTCHA v3 secret（不设则关闭验证码） |
+| `VITE_RECAPTCHA_SITE_KEY` | Google reCAPTCHA v3 site key |
+| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare Pages 前端部署（不设则手动部署） |
+| `CLOUDFLARE_API_TOKEN` | Cloudflare API token |
+| `GRAFANA_AUTH_SECRET` | Grafana SSO（不设则 SSO 不可用） |
+
+> **其它所有密钥（JWT_SECRET、TOKEN_SECRET、TOTP_ENCRYPTION_KEY、数据库密码等）由 CI/CD 流水线或容器启动时自动生成，无需手动配置。**
 
 > **Note**: `GITHUB_TOKEN` is auto-provided by GitHub Actions — no need to create it manually.
-
-Generate random secrets:
-
-```bash
-openssl rand -hex 64   # JWT_SECRET
-openssl rand -hex 32   # TOKEN_SECRET / GRAFANA_AUTH_SECRET
-openssl rand -hex 16   # TOTP_ENCRYPTION_KEY
-openssl rand -base64 24 # POSTGRES_PASSWORD / MYSQL_ROOT_PASSWORD / GRAFANA_ADMIN_PASSWORD
-```
 
 ---
 

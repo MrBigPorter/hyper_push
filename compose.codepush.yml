@@ -112,15 +112,12 @@ services:
       options:
         max-size: "5m"
         max-file: "3"
-    deploy:
-      resources:
-        limits:
-          memory: 256M
-        reservations:
-          memory: 80M
+    mem_limit: 1G
+    mem_reservation: 80M
     command: >
       sh -c "
         echo '>>> Installing code-push-server...' &&
+        rm -rf /usr/local/lib/node_modules/code-push-server /usr/local/lib/node_modules/.code-push-server-* &&
         npm install -g code-push-server@5.7.1 &&
 
         echo '>>> Waiting for MySQL to be ready...' &&

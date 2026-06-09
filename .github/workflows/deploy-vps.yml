@@ -1,13 +1,13 @@
 # ==========================================
 # HyperPush — 🖥️ VPS Deployment (Docker Compose)
 # ==========================================
-# 推送到 main 分支时自动触发 / 也可由 master orchestrator 调用
+# Auto-triggered on push to main / can also be invoked by master orchestrator
 #
-# 参考 JoyMini deploy-backend.yml 模式:
-#   阶段 0: 代码质量检查 (门禁)
-#   阶段 1: 构建 Docker 镜像 → 推送到 GHCR
-#   阶段 2: SSH 部署到 VPS (拉取镜像 + 迁移 + 重启 + 健康检查 + 回滚)
-#   阶段 3: 外部验证 + Telegram 通知
+# Reference: JoyMini deploy-backend.yml pattern:
+#   Stage 0: Code quality check (gate)
+#   Stage 1: Build Docker image → Push to GHCR
+#   Stage 2: SSH deploy to VPS (pull image + migrate + restart + health check + rollback)
+#   Stage 3: External verification + Telegram notification
 # ==========================================
 
 name: Deploy VPS
@@ -48,7 +48,7 @@ env:
 
 jobs:
   # =========================================
-  # 阶段 0: 代码质量检查 (硬门禁)
+  # Stage 0: Code Quality Check (Hard Gate)
   # =========================================
   quality:
     runs-on: ${{ inputs.runner || 'ubuntu-latest' }}
@@ -101,7 +101,7 @@ jobs:
         continue-on-error: true
 
   # =========================================
-  # 阶段 1a: 构建后端 Docker 镜像 → 推送到 GHCR
+  # Stage 1a: Build Backend Docker Image → Push to GHCR
   # =========================================
   build:
     needs: quality
@@ -147,7 +147,7 @@ jobs:
           cache-to: type=gha,mode=max
 
   # =========================================
-  # 阶段 1b: 部署前端到 Cloudflare Pages
+  # Stage 1b: Deploy Frontend to Cloudflare Pages
   # =========================================
   deploy-frontend:
     needs: quality
@@ -193,7 +193,7 @@ jobs:
           packageManager: npm
 
   # =========================================
-  # 阶段 2: SSH 部署到 VPS
+  # Stage 2: SSH Deploy to VPS
   # =========================================
   deploy:
     needs: [build, deploy-frontend]
@@ -204,7 +204,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # ---- 预检 SSH 连通性 ----
+      # ---- Pre-flight SSH Connectivity ----
       - name: Validate SSH connectivity preflight
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
@@ -227,7 +227,7 @@ jobs:
             sleep 5
           done
 
-      # ---- SSH 密钥配置 ----
+      # ---- SSH Key Setup ----
       - name: Setup SSH key & known_hosts
         env:
           SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
@@ -269,7 +269,7 @@ jobs:
           echo "::add-mask::$SSH_KEY"
           echo "✅ SSH key written to $HOME/.ssh/hyperpush-deploy"
 
-      # ---- SSH 认证预检 ----
+      # ---- SSH Auth Preflight ----
       - name: 🔐 Verify SSH authentication
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
@@ -310,7 +310,7 @@ jobs:
           }
           echo "✅ SSH authentication successful: ${OUTPUT}"
 
-      # ---- 远程目录初始化 ----
+      # ---- Remote Directory Setup ----
       - name: 📁 Ensure remote target directory exists
         env:
           SSH_USER: ${{ secrets.SSH_USERNAME }}
@@ -330,7 +330,7 @@ jobs:
              ls -ld /opt/hyperpush /opt/hyperpush/deploy"
           echo "✅ Remote directory verified"
 
-      # ---- SCP: 同步 compose 和 deploy 文件到 VPS ----
+      # ---- SCP: Sync Compose & Deploy Files to VPS ----
       - name: 📦 Sync Compose & Deploy files to VPS (SCP)
         env:
           SSH_USER: ${{ secrets.SSH_USERNAME }}
@@ -379,13 +379,13 @@ jobs:
           rm -f /tmp/hyperpush-deploy.tar.gz
           echo "✅ Local archive cleaned up"
 
-      # ---- 计算小写镜像名 (Docker 强制要求小写) ----
+      # ---- Compute Lowercase Image Name (Docker requirement) ----
       - name: Set lowercase image names (Docker requirement)
         run: |
           OWNER_LC="${GITHUB_REPOSITORY_OWNER,,}"
           echo "IMAGE_APP_LC=ghcr.io/${OWNER_LC}/hyperpush-app:latest" >> "$GITHUB_ENV"
 
-      # ---- SSH: 部署到 VPS ----
+      # ---- SSH: Deploy to VPS ----
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.2.0
         env:
@@ -430,6 +430,14 @@ jobs:
             echo "========================================"
             echo " 3/8 — Write .env file..."
             echo "========================================"
+
+            # ── Backup existing .env (preserve auto-generated secrets across deploys) ──
+            if [ -f .env ]; then
+              cp .env .env.bak
+              echo "📦 Backed up .env → .env.bak"
+            fi
+
+            # ── Write .env from GitHub Secrets (empty if secret not set) ──
             cat > .env << 'ENVEOF'
             CODEPUSH_DOMAIN=${{ secrets.CODEPUSH_DOMAIN }}
             CONSOLE_DOMAIN=${{ secrets.CONSOLE_DOMAIN }}
@@ -445,8 +453,64 @@ jobs:
             RECAPTCHA_ENABLED=true
             GRAFANA_ADMIN_PASSWORD=${{ secrets.GRAFANA_ADMIN_PASSWORD }}
             GRAFANA_AUTH_SECRET=${{ secrets.GRAFANA_AUTH_SECRET }}
+            CODEPUSH_GITHUB_PAT=${{ secrets.CODEPUSH_GITHUB_PAT }}
+            CODEPUSH_GITHUB_OWNER=${{ secrets.CODEPUSH_GITHUB_OWNER }}
             LOG_LEVEL=info
             ENVEOF
+
+            # ── Auto-fill empty secrets ──────────────────────────────────────────
+            # For any GitHub Secret not configured, restore previous value from
+            # backup, or generate a brand new random value (first deploy).
+            _fill_env() {
+              local key="$1"
+              local gen_cmd="$2"
+              local cur
+              cur=$(grep "^${key}=" .env | head -1 | cut -d= -f2-)
+              if [ -z "$cur" ]; then
+                local prev
+                prev=$(grep "^${key}=" .env.bak 2>/dev/null | head -1 | cut -d= -f2-)
+                if [ -n "$prev" ]; then
+                  sed -i "s|^${key}=.*|${key}=${prev}|" .env
+                  echo "  ♻️  ${key} ← restored from backup"
+                else
+                  local newval
+                  newval=$(eval "$gen_cmd")
+                  sed -i "s|^${key}=.*|${key}=${newval}|" .env
+                  echo "  🔑 ${key} ← auto-generated"
+                fi
+              fi
+            }
+
+            _fill_env JWT_SECRET            'openssl rand -hex 64'
+            _fill_env TOKEN_SECRET           'openssl rand -hex 32'
+            _fill_env TOTP_ENCRYPTION_KEY    'openssl rand -hex 16'
+            _fill_env POSTGRES_PASSWORD      'openssl rand -base64 24 | tr -dc \"A-Za-z0-9\" | head -c24'
+            _fill_env MYSQL_ROOT_PASSWORD    'openssl rand -base64 24 | tr -dc \"A-Za-z0-9\" | head -c24'
+            _fill_env GRAFANA_ADMIN_PASSWORD 'openssl rand -base64 24 | tr -dc \"A-Za-z0-9\" | head -c24'
+            _fill_env GRAFANA_AUTH_SECRET    'openssl rand -hex 32'
+
+            # ── Compose DATABASE_URL from POSTGRES_PASSWORD if not set ──────────
+            _db_url=$(grep "^DATABASE_URL=" .env | head -1 | cut -d= -f2-)
+            if [ -z "$_db_url" ]; then
+              _pw=$(grep "^POSTGRES_PASSWORD=" .env | head -1 | cut -d= -f2-)
+              if [ -n "$_pw" ]; then
+                sed -i "s|^DATABASE_URL=.*|DATABASE_URL=postgresql://hyperpush:${_pw}@db:5432/hyperpush|" .env
+                echo "  🔗 DATABASE_URL ← auto-composed from POSTGRES_PASSWORD"
+              fi
+            fi
+
+            # ── Compose PUBLIC_URL from CODEPUSH_DOMAIN if not set ──────────────
+            _pub=$(grep "^PUBLIC_URL=" .env | head -1 | cut -d= -f2-)
+            if [ -z "$_pub" ] || [ "$_pub" = "https://" ]; then
+              _cd=$(grep "^CODEPUSH_DOMAIN=" .env | head -1 | cut -d= -f2-)
+              if [ -n "$_cd" ]; then
+                sed -i "s|^PUBLIC_URL=.*|PUBLIC_URL=https://${_cd}/codepush|" .env
+                echo "  🔗 PUBLIC_URL ← auto-composed from CODEPUSH_DOMAIN"
+              fi
+            fi
+
+            # ── Clean up backup ────────────────────────────────────────────────
+            rm -f .env.bak
 
             echo "========================================"
             echo " 4/7 — Pull latest image..."
@@ -508,9 +572,9 @@ jobs:
             echo "✅ VPS Deployment complete!"
             docker compose -f compose.yml -f deploy/compose.prod.yml ps
 
-      # ---- 外部验证 ----
-      # ★ 注意: hyperpush.org 走的是 Cloudflare Pages，CI 验证时不走公网域名
-      #   改为直连 VPS IP:80 (Lucky Nginx)，绕过 Cloudflare
+      # ---- External Verification ----
+      # ★ Note: hyperpush.org goes through Cloudflare Pages; CI verification bypasses public DNS
+      #   Instead, connects directly to VPS IP:80 (Lucky Nginx), bypassing Cloudflare
       - name: 🔍 Verify API externally (via VPS directly)
         id: verify
         continue-on-error: true

@@ -1,24 +1,24 @@
 // ==========================================
 // HyperPush — Auth Types
-// 严格类型，零 any
+// Strict types, zero any
 // ==========================================
 
 import type { User } from './models';
 
-/** 登录输入 */
+/** Login input */
 export interface LoginInput {
   email: string;
   password: string;
 }
 
-/** 注册输入 */
+/** Register input */
 export interface RegisterInput {
   email: string;
   password: string;
   name?: string;
 }
 
-/** Auth 响应 (login / register / verify2fa) */
+/** Auth response (login / register / verify2fa) */
 export interface AuthResponse {
   /** Full JWT token (null during 2FA step) */
   token?: string;
@@ -30,20 +30,20 @@ export interface AuthResponse {
   tempToken?: string;
 }
 
-/** Auth 状态 */
+/** Auth state */
 export interface AuthState {
   /** JWT token */
   token: string | null;
-  /** 当前用户 */
+  /** Current user */
   user: User | null;
   /** 2FA verification required (after password login) */
   requires2fa: boolean;
   /** Temporary token for 2FA verification step */
   tempToken: string | null;
-  /** 是否已加载过认证状态 */
+  /** Whether auth state has been loaded */
   isLoaded: boolean;
-  /** 认证进行中 */
+  /** Auth in progress */
   isLoading: boolean;
-  /** 错误信息 */
+  /** Error message */
   error: string | null;
 }

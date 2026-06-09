@@ -27,6 +27,7 @@ import {
   Plus,
   RotateCcw,
   Server,
+  Terminal,
   Trash2,
   User,
   X,
@@ -51,6 +52,8 @@ export function ServerDetailPage() {
   const [copiedToken, setCopiedToken] = useState(false);
   const [showResetTokenDialog, setShowResetTokenDialog] = useState(false);
   const [resetPassword, setResetPassword] = useState('');
+  const [loginCommand, setLoginCommand] = useState<string | null>(null);
+  const [creatingLoginKey, setCreatingLoginKey] = useState(false);
 
   const { data, loading, error } = useQuery(GET_SERVER, {
     variables: { id: params.id },
@@ -395,6 +398,102 @@ export function ServerDetailPage() {
               </Button>
             </div>
           )}
+        </div>
+      </Card>
+
+      {/* ── One-Click Login Command ── */}
+      <Card padding="lg">
+        <div className="flex items-center gap-2 border-b border-gray-200 pb-4 dark:border-dark-700">
+          <Terminal className="h-5 w-5 text-gray-500" />
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            One-Click CLI Login
+          </h2>
+        </div>
+
+        <div className="mt-4">
+          <p className="mb-3 text-sm text-gray-500 dark:text-gray-400">
+            Copy the login command to authenticate the <code className="rounded bg-gray-100 px-1 py-0.5 text-xs dark:bg-dark-800">code-push-standalone</code> CLI with your self-hosted CodePush server. The command will create an access key automatically and include it in the copied text.
+          </p>
+
+          {loginCommand && (
+            <div className="mb-3 rounded-lg border border-green-200 bg-green-50 p-3 dark:border-green-800 dark:bg-green-900/20">
+              <p className="mb-1 text-sm font-medium text-green-700 dark:text-green-300">
+                Login Command Copied!
+              </p>
+              <code className="block break-all rounded bg-white px-2 py-1 text-xs font-mono dark:bg-dark-800">
+                {loginCommand}
+              </code>
+              <p className="mt-2 text-xs text-green-600 dark:text-green-400">
+                Paste this in your terminal to login.
+              </p>
+            </div>
+          )}
+
+          <Button
+            variant="primary"
+            size="sm"
+            disabled={creatingLoginKey}
+            onClick={async () => {
+              setCreatingLoginKey(true);
+              setLoginCommand(null);
+              try {
+                const result = await createAccessKeyMut({
+                  variables: {
+                    input: {
+                      serverId: params.id,
+                      friendlyName: 'cli-login-key',
+                      ttl: 3650,
+                    },
+                  },
+                });
+                const keyRaw = (result.data as Record<string, unknown>)?.createCodepushAccessKey;
+                let keyValue = '';
+                if (typeof keyRaw === 'string') {
+                  keyValue = keyRaw;
+                } else if (keyRaw && typeof keyRaw === 'object') {
+                  const extractKey = (obj: unknown): string => {
+                    if (typeof obj === 'string') return obj;
+                    if (obj && typeof obj === 'object') {
+                      const o = obj as Record<string, unknown>;
+                      if (typeof o.name === 'string') return o.name;
+                      if (typeof o.key === 'string') return o.key;
+                      if (typeof o.accessKey === 'string') return o.accessKey;
+                      if (typeof o.accessKeyToken === 'string') return o.accessKeyToken;
+                      if (o.accessKey && typeof o.accessKey === 'object') return extractKey(o.accessKey);
+                      if (o.results && typeof o.results === 'object') return extractKey(o.results);
+                    }
+                    return '';
+                  };
+                  keyValue = extractKey(keyRaw);
+                  if (!keyValue) keyValue = JSON.stringify(keyRaw);
+                }
+
+                if (keyValue) {
+                  const cmd = `code-push-standalone login https://cp.hyperpush.org --accessKey ${keyValue}`;
+                  setLoginCommand(cmd);
+                  await navigator.clipboard.writeText(cmd);
+                } else {
+                  alert('Failed to extract access key value from server response.');
+                }
+              } catch (err) {
+                alert(err instanceof Error ? err.message : 'Failed to create login key');
+              } finally {
+                setCreatingLoginKey(false);
+              }
+            }}
+          >
+            {creatingLoginKey ? (
+              <>
+                <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                Creating...
+              </>
+            ) : (
+              <>
+                <Terminal className="mr-1 h-4 w-4" />
+                Copy Login Command
+              </>
+            )}
+          </Button>
         </div>
       </Card>
 

@@ -8,7 +8,15 @@ import { CREATE_CODEPUSH_APP, GET_SERVERS } from '@app/lib/graphql';
 import type { ServersResponseData } from '@app/types/graphql';
 import type { Server as ServerModel } from '@app/types/models';
 import { useNavigate } from '@tanstack/react-router';
-import { Plus, Server, Smartphone } from 'lucide-react';
+import {
+  BookOpen,
+  ChevronDown,
+  ChevronRight,
+  Plus,
+  Server,
+  Smartphone,
+  Terminal,
+} from 'lucide-react';
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -37,8 +45,33 @@ const PLATFORM_OPTIONS = [
   'Other',
 ] as const;
 
+/** Inline code block helper */
+function CodeBlock({ command }: { command: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <div className="flex items-center gap-2">
+      <code className="flex-1 rounded bg-gray-100 px-2 py-1 text-xs font-mono text-gray-700 dark:bg-dark-800 dark:text-gray-300">
+        <Terminal className="mr-1 inline-block h-3 w-3 text-gray-400" />
+        {command}
+      </code>
+      <button
+        type="button"
+        onClick={async () => {
+          await navigator.clipboard.writeText(command);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+        }}
+        className="shrink-0 rounded px-2 py-1 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:hover:text-gray-300 dark:hover:bg-dark-700"
+      >
+        {copied ? 'Copied!' : 'Copy'}
+      </button>
+    </div>
+  );
+}
+
 export function CodePushPage() {
   const navigate = useNavigate();
+  const [showGuide, setShowGuide] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [createServerId, setCreateServerId] = useState('');
   const [createAppName, setCreateAppName] = useState('');
@@ -105,6 +138,118 @@ export function CodePushPage() {
           </Button>
         }
       />
+
+      {/* ── CodePush Usage Guide ── */}
+      <Card padding="lg" className="border border-primary-200 dark:border-primary-800">
+        <button
+          type="button"
+          onClick={() => setShowGuide(!showGuide)}
+          className="flex w-full items-center justify-between text-left"
+        >
+          <div className="flex items-center gap-2">
+            <BookOpen className="h-5 w-5 text-primary-600 dark:text-primary-400" />
+            <span className="font-semibold text-gray-900 dark:text-gray-100">
+              📖 CodePush Usage Guide
+            </span>
+          </div>
+          {showGuide ? (
+            <ChevronDown className="h-5 w-5 text-gray-400" />
+          ) : (
+            <ChevronRight className="h-5 w-5 text-gray-400" />
+          )}
+        </button>
+
+        {showGuide && (
+          <div className="mt-4 space-y-4 border-t border-gray-200 pt-4 text-sm text-gray-600 dark:border-dark-700 dark:text-gray-400">
+            {/* 1. Deployment Key */}
+            <div>
+              <h4 className="mb-1 font-medium text-gray-900 dark:text-gray-100">
+                1️⃣ Get Deployment Key
+              </h4>
+              <p>
+                Click a server card to open App Details → <strong>Deployments</strong> tab, copy the key from
+                <code className="mx-1 rounded bg-gray-100 px-1.5 py-0.5 text-xs dark:bg-dark-800">
+                  Staging
+                </code>
+                or
+                <code className="mx-1 rounded bg-gray-100 px-1.5 py-0.5 text-xs dark:bg-dark-800">
+                  Production
+                </code>
+                . In your React Native project, configure it in
+                <code className="mx-1 rounded bg-gray-100 px-1.5 py-0.5 text-xs dark:bg-dark-800">
+                  Info.plist
+                </code>
+                or
+                <code className="mx-1 rounded bg-gray-100 px-1.5 py-0.5 text-xs dark:bg-dark-800">
+                  build.gradle
+                </code>
+                .
+              </p>
+            </div>
+
+            {/* 2. CLI Login */}
+            <div>
+              <h4 className="mb-1 font-medium text-gray-900 dark:text-gray-100">
+                2️⃣ Install CLI & Login
+              </h4>
+              <div className="space-y-1">
+                <CodeBlock command="npm install -g code-push-standalone" />
+                <CodeBlock command="code-push-standalone login https://cp.hyperpush.org --accessKey YOUR_ACCESS_KEY" />
+              </div>
+              <p className="mt-1">
+                Access Keys can be created on the server detail page under <strong>CodePush Access Keys</strong>.
+                Click <strong>"Create Key"</strong> to generate one, then paste it into the terminal.
+              </p>
+            </div>
+
+            {/* 3. Release */}
+            <div>
+              <h4 className="mb-1 font-medium text-gray-900 dark:text-gray-100">
+                3️⃣ Publish a Hot Update
+              </h4>
+              <div className="space-y-1">
+                <CodeBlock command='code-push-standalone release-react Tarsier-iOS ios --deploymentName Staging --description "Fixed login crash"' />
+                <CodeBlock command='code-push-standalone release-react Tarsier-android android --deploymentName Staging --description "Fixed login crash"' />
+              </div>
+              <p className="mt-1">
+                Or use the <strong>"🔥 Hot Fix"</strong> button (in App Details page) to
+                automatically trigger GitHub Actions: pull code → build → publish, no manual steps needed.
+              </p>
+            </div>
+
+            {/* 4. Promote & Rollback */}
+            <div>
+              <h4 className="mb-1 font-medium text-gray-900 dark:text-gray-100">
+                4️⃣ Promote & Rollback
+              </h4>
+              <p>
+                <strong>Promote</strong>: In the Releases tab, select a Staging version and click
+                <strong>"Promote to Production"</strong> to push it to Production.
+              </p>
+              <p className="mt-1">
+                <strong>Rollback</strong>: Click the <strong>"Rollback"</strong> button to
+                revert to the previous version. You can also specify a Label to rollback to a specific version.
+              </p>
+            </div>
+
+            {/* 5. CI/CD Hot Fix */}
+            <div>
+              <h4 className="mb-1 font-medium text-gray-900 dark:text-gray-100">
+                5️⃣ CI/CD Hot Fix (One-Click Publish)
+              </h4>
+              <p>
+                In the App Details page's Releases list, click the <strong>"🔥 Hot Fix"</strong> button.
+                The system will automatically complete via GitHub Actions:
+              </p>
+              <ol className="ml-5 mt-1 list-decimal space-y-0.5">
+                <li>Pull latest code</li>
+                <li>Run code-push-standalone release-react</li>
+                <li>Publish to the target Deployment (Staging / Production)</li>
+              </ol>
+            </div>
+          </div>
+        )}
+      </Card>
 
       {/* Create App Dialog */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>

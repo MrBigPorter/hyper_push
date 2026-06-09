@@ -69,9 +69,12 @@ services:
     image: node:18-alpine
     container_name: hyperpush-codepush-prod
     restart: unless-stopped
+    mem_limit: 1G
+    mem_reservation: 80M
     command: >
       sh -c "
         echo '>>> Installing code-push-server...' &&
+        rm -rf /usr/local/lib/node_modules/code-push-server /usr/local/lib/node_modules/.code-push-server-* &&
         npm install -g code-push-server@5.7.1 &&
         echo '>>> Waiting for MySQL...' &&
         mysql_ready=false &&

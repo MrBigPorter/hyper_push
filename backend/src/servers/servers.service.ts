@@ -23,11 +23,44 @@ export class ServersService {
     private readonly auditLogService: AuditLogService,
   ) {}
 
+  /**
+   * Ping the code-push-server health endpoint.
+   * Returns true if the server responds with HTTP 200.
+   */
+  private async pingCodePushServer(): Promise<boolean> {
+    try {
+      const url = `${CODEPUSH_BASE_URL.replace(/\/+$/, '')}/`;
+      const response = await fetch(url, { method: 'GET', signal: AbortSignal.timeout(5000) });
+      return response.ok;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Run health check for a single server: ping the code-push-server
+   * and update isOnline in the database accordingly.
+   */
+  private async healthCheck(server: { id: string; isOnline: boolean }): Promise<void> {
+    const online = await this.pingCodePushServer();
+    if (online !== server.isOnline) {
+      await this.prisma.server.update({
+        where: { id: server.id },
+        data: { isOnline: online },
+      });
+    }
+  }
+
   async findAll(userId: string) {
-    return this.prisma.server.findMany({
+    const servers = await this.prisma.server.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
     });
+    // Run health checks in background (fire-and-forget)
+    for (const server of servers) {
+      this.healthCheck(server).catch(() => {});
+    }
+    return servers;
   }
 
   async findOne(id: string, userId: string) {
@@ -37,6 +70,8 @@ export class ServersService {
     if (!server) {
       throw new NotFoundException('Server not found');
     }
+    // Run health check in background
+    this.healthCheck(server).catch(() => {});
     return server;
   }
 
@@ -60,6 +95,7 @@ export class ServersService {
         name: input.name,
         username: input.username,
         apiKey: jwtToken,
+        isOnline: true, // Login succeeded, mark as online
         userId,
       },
     });

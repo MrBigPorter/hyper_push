@@ -72,6 +72,10 @@ COPY --from=builder /app/package.json   ./
 COPY --from=builder /app/prisma         ./prisma
 COPY --from=builder /app/prisma.config.ts ./
 
+# Copy docker-entrypoint.sh
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
 # Grant node user ownership so NestJS can write schema.gql
 RUN chown -R node:node /app
 
@@ -82,4 +86,5 @@ USER node
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
   CMD wget -qO- http://localhost:3000/graphql >/dev/null 2>&1 || exit 1
 
+ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["sh", "-c", "bunx prisma migrate deploy && bun dist/main.js"]

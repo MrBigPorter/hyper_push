@@ -1,6 +1,6 @@
 // ==========================================
 // HyperPush — Typed Redux Hooks
-// (纯类型工具，不含 GraphQL)
+// (Typed helpers, no GraphQL)
 // ==========================================
 
 import type { AppDispatch, RootState } from '@app/store';

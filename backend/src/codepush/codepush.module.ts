@@ -4,6 +4,7 @@ import { CodepushController } from './codepush.controller.js';
 import { CodepushResolver } from './codepush.resolver.js';
 import { CodepushService } from './codepush.service.js';
 import { CodepushDbService } from './codepush-db.service.js';
+import { CodepushGithubService } from './codepush-github.service.js';
 
 @Module({
   imports: [
@@ -13,8 +14,8 @@ import { CodepushDbService } from './codepush-db.service.js';
       },
     }),
   ],
-  providers: [CodepushService, CodepushResolver, CodepushDbService],
+  providers: [CodepushService, CodepushResolver, CodepushDbService, CodepushGithubService],
   controllers: [CodepushController],
-  exports: [CodepushService, CodepushDbService],
+  exports: [CodepushService, CodepushDbService, CodepushGithubService],
 })
 export class CodepushModule {}

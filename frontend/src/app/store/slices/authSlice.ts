@@ -1,7 +1,7 @@
 // ==========================================
 // HyperPush — Auth Redux Slice
-// 仅管理状态，不含 GraphQL 调用
-//（GraphQL login/register mutation 由你写）
+// State management only, no GraphQL calls
+// (GraphQL login/register mutations are handled elsewhere)
 // ==========================================
 
 import type { AuthState, User } from '@app/types';
@@ -9,7 +9,7 @@ import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 
 const AUTH_TOKEN_KEY = 'hyperpush_token';
 
-/** 从 localStorage 恢复 token */
+/** Restore token from localStorage */
 function loadToken(): string | null {
   if (typeof window === 'undefined') return null;
   return localStorage.getItem(AUTH_TOKEN_KEY);
@@ -30,13 +30,13 @@ const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
-    /** 开始登录/注册 (设置 loading) */
+    /** Start login/register (set loading) */
     authStart(state) {
       state.isLoading = true;
       state.error = null;
     },
 
-    /** 登录/注册成功 (保存 token + user) */
+    /** Login/register success (save token + user) */
     authSuccess(state, action: PayloadAction<{ token: string; user: User }>) {
       state.token = action.payload.token;
       state.user = action.payload.user;
@@ -48,7 +48,7 @@ const authSlice = createSlice({
       localStorage.setItem(AUTH_TOKEN_KEY, action.payload.token);
     },
 
-    /** 2FA 需要验证 (密码正确但需 TOTP) */
+    /** 2FA verification required (password correct, TOTP needed) */
     setRequires2fa(state, action: PayloadAction<{ tempToken: string; user: User }>) {
       state.token = null;
       state.user = action.payload.user;
@@ -58,19 +58,19 @@ const authSlice = createSlice({
       state.error = null;
     },
 
-    /** 登录/注册失败 */
+    /** Login/register failure */
     authFailure(state, action: PayloadAction<string>) {
       state.isLoading = false;
       state.error = action.payload;
     },
 
-    /** 加载当前用户成功 */
+    /** Load current user success */
     setUser(state, action: PayloadAction<User>) {
       state.user = action.payload;
       state.isLoaded = true;
     },
 
-    /** 登出 */
+    /** Logout */
     logout(state) {
       state.token = null;
       state.user = null;
@@ -82,7 +82,7 @@ const authSlice = createSlice({
       localStorage.removeItem(AUTH_TOKEN_KEY);
     },
 
-    /** 清除错误 */
+    /** Clear error */
     clearError(state) {
       state.error = null;
     },

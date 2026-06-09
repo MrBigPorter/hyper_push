@@ -311,6 +311,22 @@ export const DELETE_CODEPUSH_ACCESS_KEY = gql`
   }
 `;
 
+export const TRIGGER_CODEPUSH_RELEASE = gql`
+  mutation triggerCodepushRelease(
+    $serverId: String!
+    $appName: String!
+    $deploymentName: String!
+    $description: String
+  ) {
+    triggerCodepushRelease(
+      serverId: $serverId
+      appName: $appName
+      deploymentName: $deploymentName
+      description: $description
+    )
+  }
+`;
+
 // ─── 2FA ────────────────────────────────────────────────
 
 export const VERIFY_2FA_MUTATION = gql`
