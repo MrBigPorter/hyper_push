@@ -126,6 +126,7 @@ type Mutation {
   rollbackCodepushRelease(appName: String!, deploymentName: String!, label: String, serverId: String!): JSON!
   setup2fa: String
   transferCodepushApp(appName: String!, email: String!, serverId: String!): JSON!
+  triggerCodepushRelease(appName: String!, deploymentName: String!, description: String, serverId: String!): Boolean!
   unbanUser(userId: String!): Boolean!
   updateCodepushApp(input: UpdateAppInput!): JSON!
   updateCodepushDeployment(input: UpdateDeploymentInput!): JSON!
