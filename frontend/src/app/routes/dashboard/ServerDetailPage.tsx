@@ -461,12 +461,15 @@ export function ServerDetailPage() {
                     if (typeof obj === 'string') return obj;
                     if (obj && typeof obj === 'object') {
                       const o = obj as Record<string, unknown>;
-                      if (typeof o.name === 'string') return o.name;
+                      // code-push-server returns { id, name, token } — `token` is the actual key
+                      if (typeof o.token === 'string') return o.token;
                       if (typeof o.key === 'string') return o.key;
                       if (typeof o.accessKey === 'string') return o.accessKey;
                       if (typeof o.accessKeyToken === 'string') return o.accessKeyToken;
                       if (o.accessKey && typeof o.accessKey === 'object') return extractKey(o.accessKey);
                       if (o.results && typeof o.results === 'object') return extractKey(o.results);
+                      // fallback: `name` is the friendly name, not the secret token
+                      if (typeof o.name === 'string') return o.name;
                     }
                     return '';
                   };
@@ -551,12 +554,15 @@ export function ServerDetailPage() {
                           if (typeof obj === 'string') return obj;
                           if (obj && typeof obj === 'object') {
                             const o = obj as Record<string, unknown>;
-                            if (typeof o.name === 'string') return o.name;
+                            // code-push-server returns { id, name, token } — `token` is the actual key
+                            if (typeof o.token === 'string') return o.token;
                             if (typeof o.key === 'string') return o.key;
                             if (typeof o.accessKey === 'string') return o.accessKey;
                             if (typeof o.accessKeyToken === 'string') return o.accessKeyToken;
                             if (o.accessKey && typeof o.accessKey === 'object') return extractKey(o.accessKey);
                             if (o.results && typeof o.results === 'object') return extractKey(o.results);
+                            // fallback: `name` is the friendly name, not the secret token
+                            if (typeof o.name === 'string') return o.name;
                           }
                           return '';
                         };
