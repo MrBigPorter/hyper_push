@@ -82,8 +82,13 @@ export class CodepushDbService implements OnModuleDestroy {
     // Step 2: Create new user
     const hashedPassword = await bcrypt.hash(password, 10);
     // Generate a random 9-character alphanumeric `identical` string
-    // (matching the format used by code-push-server: base64-url-safe)
-    const identical = randomBytes(6).toString('base64').replace(/[/+]/g, '').slice(0, 9);
+    // (matching the format used by code-push-server: rand-token.uid(9) → a-zA-Z0-9)
+    // Using 9 random bytes mapped through a 62-char alphabet guarantees exactly 9 chars
+    // regardless of base64 encoding quirks.
+    const identical = Array.from(
+      randomBytes(9),
+      (b) => 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'[b % 62],
+    ).join('');
 
     await pool.execute(
       'INSERT INTO users (username, password, email, identical, created_at, updated_at) VALUES (?, ?, ?, ?, NOW(), NOW())',
