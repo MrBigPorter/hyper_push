@@ -4,7 +4,7 @@
 // using a self-hosted lisong/code-push-server
 // ==========================================
 
-import { BookOpen, CheckCircle, Code2, Copy, Cpu, ExternalLink, FileCode, Package, Plug, Terminal, Wrench } from 'lucide-react';
+import { BookOpen, CheckCircle, Code2, Copy, Cpu, ExternalLink, FileCode, Package, Plug, Target, Terminal, Wrench } from 'lucide-react';
 import { useState } from 'react';
 
 function CodeBlock({ code, language = 'bash' }: { code: string; language?: string }) {
@@ -144,6 +144,56 @@ export function InstallGuidePage() {
       </div>
 
       {/* ======================================== */}
+      {/* Stage Guide: Where are you? */}
+      {/* ======================================== */}
+      <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-6 dark:border-indigo-900/50 dark:bg-indigo-950/30">
+        <div className="flex items-start gap-3">
+          <Target className="mt-0.5 h-5 w-5 shrink-0 text-indigo-600 dark:text-indigo-400" />
+          <div>
+            <h2 className="text-sm font-semibold text-indigo-800 dark:text-indigo-300">🤔 What's your goal?</h2>
+            <p className="mt-2 text-sm text-indigo-700 dark:text-indigo-400">
+              Choose the right section based on what you need to do:
+            </p>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              <a
+                href="#install-sdk"
+                className="flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-xs font-medium text-indigo-700 shadow-sm transition-colors hover:bg-indigo-100 dark:bg-indigo-900/50 dark:text-indigo-300 dark:hover:bg-indigo-800/50"
+              >
+                📱 Integrate SDK → Step 2
+              </a>
+              <a
+                href="#release"
+                className="flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-xs font-medium text-indigo-700 shadow-sm transition-colors hover:bg-indigo-100 dark:bg-indigo-900/50 dark:text-indigo-300 dark:hover:bg-indigo-800/50"
+              >
+                🚀 Release Update → Step 6
+              </a>
+              <a
+                href="#cli-setup"
+                className="flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-xs font-medium text-indigo-700 shadow-sm transition-colors hover:bg-indigo-100 dark:bg-indigo-900/50 dark:text-indigo-300 dark:hover:bg-indigo-800/50"
+              >
+                ⚙️ Makefile Automation → Step 7
+              </a>
+              <a
+                href="#troubleshooting"
+                className="flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-xs font-medium text-indigo-700 shadow-sm transition-colors hover:bg-indigo-100 dark:bg-indigo-900/50 dark:text-indigo-300 dark:hover:bg-indigo-800/50"
+              >
+                ❓ Troubleshooting
+              </a>
+              <a
+                href="/dashboard/servers"
+                className="flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-xs font-medium text-indigo-700 shadow-sm transition-colors hover:bg-indigo-100 dark:bg-indigo-900/50 dark:text-indigo-300 dark:hover:bg-indigo-800/50"
+              >
+                🔑 Get Access Key → Server Detail
+              </a>
+              <span className="flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-xs font-medium text-indigo-400 shadow-sm dark:bg-indigo-900/50 dark:text-indigo-400">
+                🆕 New here? → Create App in CodePush page
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ======================================== */}
       {/* Step 0: Quick Start */}
       {/* ======================================== */}
       <div id="quick-start">
@@ -175,7 +225,7 @@ cd ios && pod install && cd ..
 npm install -g code-push-standalone
 
 # 6. Login to your self-hosted server
-code-push-standalone login https://codepush.example.com --accessKey 'your-access-key'
+code-push-standalone login https://cp.hyperpush.org/codepush --accessKey 'your-access-key'
 
 # 7. Release your first update
 code-push-standalone release-react YOUR_APP_NAME ios --deploymentName Staging"
@@ -208,7 +258,7 @@ code-push-standalone release-react YOUR_APP_NAME ios --deploymentName Staging"
               },
               {
                 label: 'Self-hosted CodePush server deployed',
-                desc: 'lisong/code-push-server running on your server, accessible via domain (e.g., codepush.yourdomain.com)',
+                desc: 'lisong/code-push-server running on your server, accessible via URL (e.g., https://cp.hyperpush.org/codepush)',
               },
               {
                 label: 'HyperPush account & API Key',
@@ -307,7 +357,7 @@ npx expo run:android"
                 <CodeBlock
                   language="xml"
                   code={`<key>CodePushServerURL</key>
-<string>https://codepush.yourdomain.com</string>
+<string>https://cp.hyperpush.org/codepush</string>
 <key>CodePushDeploymentKey</key>
 <string>$(CODEPUSH_DEPLOYMENT_KEY)</string>`}
                 />
@@ -338,14 +388,14 @@ npx expo run:android"
     versionNameSuffix "-test"
     resValue "string", "app_name", "MyApp(Test)"
     resValue "string", "CodePushDeploymentKey", "YOUR_STAGING_KEY"
-    resValue "string", "ServerUrl", "https://codepush.yourdomain.com"   // ← add this
+    resValue "string", "ServerUrl", "https://cp.hyperpush.org/codepush"   // ← add this
 }
 production {
     dimension "env"
     applicationIdSuffix ""
     resValue "string", "app_name", "MyApp"
     resValue "string", "CodePushDeploymentKey", "YOUR_PRODUCTION_KEY"
-    resValue "string", "ServerUrl", "https://codepush.yourdomain.com"   // ← add this
+    resValue "string", "ServerUrl", "https://cp.hyperpush.org/codepush"   // ← add this
 }`}
                 />
               </div>
@@ -545,11 +595,23 @@ export default codePush(codePushOptions)(App);
 npm install -g code-push-standalone
 
 # Login with your access key
-code-push-standalone login https://codepush.yourdomain.com --accessKey 'your-access-key'
+code-push-standalone login https://cp.hyperpush.org/codepush --accessKey 'your-access-key'
 
 # Verify login
-code-push-standalone app list"
+code-push-standalone app list
+
+# Logout (when done)
+code-push-standalone logout"
             />
+
+            <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-900/50 dark:bg-blue-950/30">
+              <p className="text-xs text-blue-700 dark:text-blue-300">
+                <strong>🔑 Don't have an Access Key yet?</strong>
+                Go to <strong>Servers → Server Detail</strong>, click <strong>"Copy Login Command"</strong> in the
+                <strong> One-Click CLI Login</strong> section, or create one manually in <strong>CodePush Access Keys</strong>.
+                See the <a href="/docs/codepush-cli.md" className="underline">CodePush CLI Guide</a> for full instructions.
+              </p>
+            </div>
 
             <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">
               Release Commands
@@ -612,7 +674,7 @@ code-push-standalone deployment ls MyApp-ios -k"
               language="makefile"
               code={`# ── CodePush Self-Hosted ─────────────────────
 CODEPUSH_STANDALONE_CMD := code-push-standalone
-CODEPUSH_SERVER_URL := https://codepush.yourdomain.com
+CODEPUSH_SERVER_URL := https://cp.hyperpush.org/codepush
 
 # Login (requires access key)
 codepush-login:

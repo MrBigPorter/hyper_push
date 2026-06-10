@@ -76,6 +76,10 @@ services:
         echo '>>> Installing code-push-server...' &&
         rm -rf /usr/local/lib/node_modules/code-push-server /usr/local/lib/node_modules/.code-push-server-* &&
         npm install -g code-push-server@5.7.1 &&
+
+        echo '>>> Patching upstream TTL bug (ttl/1000 → ttl days)...' &&
+        sed -i \"s/moment().add(ttl\\/1000, 'seconds')/moment().add(ttl, 'days')/\" /usr/local/lib/node_modules/code-push-server/core/services/account-manager.js &&
+
         echo '>>> Waiting for MySQL...' &&
         mysql_ready=false &&
         for i in \$$(seq 1 30); do

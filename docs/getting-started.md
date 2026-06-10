@@ -173,4 +173,5 @@ docker compose exec app npx prisma migrate dev
 - [Architecture Overview](architecture.md) — Understand the system design
 - [Development Guide](development.md) — Backend and frontend development workflow
 - [Deployment Guide](deployment.md) — Deploy to production
+- [CodePush CLI Guide](codepush-cli.md) — Login, logout, and manage access keys
 - [Security Features](security.md) — Security configuration and hardening
