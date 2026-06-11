@@ -123,6 +123,9 @@ services:
         echo '>>> Patching upstream TTL bug (ttl/1000 → ttl days)...' &&
         sed -i \"s/moment().add(ttl\\/1000, 'seconds')/moment().add(ttl, 'days')/\" /usr/local/lib/node_modules/code-push-server/core/services/account-manager.js &&
 
+        echo '>>> Patching upstream metrics NULL bug (init active/downloaded/failed/installed to 0)...' &&
+        sed -i \"s/{package_id: packages.id}/{package_id: packages.id, active: 0, downloaded: 0, failed: 0, installed: 0}/\" /usr/local/lib/node_modules/code-push-server/core/services/package-manager.js &&
+
         echo '>>> Waiting for MySQL to be ready...' &&
         mysql_ready=false &&
         for i in \$$(seq 1 30); do
