@@ -287,12 +287,6 @@ export const ROLLBACK_CODEPUSH_RELEASE = gql`
   }
 `;
 
-export const CODEPUSH_DEPLOYMENT_METRICS = gql`
-  query codepushDeploymentMetrics($serverId: String!, $appName: String!, $deploymentName: String!) {
-    codepushDeploymentMetrics(serverId: $serverId, appName: $appName, deploymentName: $deploymentName)
-  }
-`;
-
 export const CODEPUSH_ACCESS_KEYS = gql`
   query codepushAccessKeys($serverId: String!) {
     codepushAccessKeys(serverId: $serverId)

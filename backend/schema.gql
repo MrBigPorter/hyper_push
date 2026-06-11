@@ -168,7 +168,6 @@ type Query {
   codepushApps(serverId: String!): [JSON!]!
   codepushCollaborators(appName: String!, serverId: String!): JSON!
   codepushDeployment(appName: String!, deploymentName: String!, serverId: String!): JSON!
-  codepushDeploymentMetrics(appName: String!, deploymentName: String!, serverId: String!): JSON!
   codepushDeployments(appName: String!, serverId: String!): [JSON!]!
   codepushReleaseHistory(appName: String!, deploymentName: String!, serverId: String!): [JSON!]!
   getApiKeys: [ApiKey!]!

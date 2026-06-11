@@ -414,19 +414,4 @@ export class CodepushService {
       `/apps/${encodeURIComponent(appName)}/deployments/${encodeURIComponent(deploymentName)}/history`,
     );
   }
-
-  // ── Metrics ────────────────────────────────────────────────────────────
-
-  /** GET /apps/:appName/deployments/:deploymentName/metrics */
-  async deploymentMetrics(
-    serverId: string,
-    appName: string,
-    deploymentName: string,
-  ): Promise<unknown> {
-    return this.fetchWithAuth(
-      serverId,
-      'GET',
-      `/apps/${encodeURIComponent(appName)}/deployments/${encodeURIComponent(deploymentName)}/metrics`,
-    );
-  }
 }

@@ -244,17 +244,6 @@ export class CodepushResolver {
     return true;
   }
 
-  // ── Metrics ────────────────────────────────────────────────────────────
-
-  @Query(() => GraphQLJSON)
-  async codepushDeploymentMetrics(
-    @Args('serverId') serverId: string,
-    @Args('appName') appName: string,
-    @Args('deploymentName') deploymentName: string,
-  ) {
-    return this.codepushService.deploymentMetrics(serverId, appName, deploymentName);
-  }
-
   // ── GitHub Actions Trigger ──────────────────────────────────────────────
 
   @Mutation(() => Boolean)
