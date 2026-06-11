@@ -9,6 +9,7 @@ import { Card } from '@app/components/ui/Card';
 import {
   CODEPUSH_APPS,
   CODEPUSH_DEPLOYMENTS,
+  CODEPUSH_DEPLOYMENT_METRICS,
   CODEPUSH_RELEASE_HISTORY,
   PROMOTE_CODEPUSH_RELEASE,
   ROLLBACK_CODEPUSH_RELEASE,
@@ -31,6 +32,11 @@ import {
   Trash2,
   ChevronDown,
   ChevronUp,
+  BarChart3,
+  Download,
+  CheckCircle2,
+  Smartphone as SmartphoneIcon,
+  TrendingUp,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
@@ -56,6 +62,31 @@ function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+}
+
+interface MetricsData {
+  [label: string]: {
+    active: number;
+    downloaded: number;
+    failed: number;
+    installed: number;
+  };
+}
+
+function aggregateMetrics(metrics: MetricsData | null | undefined): {
+  totalDownloaded: number;
+  totalInstalled: number;
+  totalFailed: number;
+  totalActive: number;
+} {
+  if (!metrics) return { totalDownloaded: 0, totalInstalled: 0, totalFailed: 0, totalActive: 0 };
+  const entries = Object.values(metrics);
+  return {
+    totalDownloaded: entries.reduce((s, m) => s + (m.downloaded ?? 0), 0),
+    totalInstalled: entries.reduce((s, m) => s + (m.installed ?? 0), 0),
+    totalFailed: entries.reduce((s, m) => s + (m.failed ?? 0), 0),
+    totalActive: entries.reduce((s, m) => s + (m.active ?? 0), 0),
+  };
 }
 
 // ─── Component ───────────────────────────────
@@ -184,6 +215,25 @@ function AppDetailCard({
       ? (releasesData as Record<string, unknown>).codepushReleaseHistory
       : []
   ) as Record<string, unknown>[];
+
+  // ── Metrics ──
+  const {
+    data: metricsData,
+    loading: metricsLoading,
+  } = useQuery(CODEPUSH_DEPLOYMENT_METRICS, {
+    variables: {
+      serverId,
+      appName,
+      deploymentName: activeDeployment ?? '',
+    },
+    skip: !activeDeployment,
+  });
+
+  const rawMetrics = (metricsData as Record<string, unknown>)?.codepushDeploymentMetrics as MetricsData | null | undefined;
+  const metrics = aggregateMetrics(rawMetrics);
+  const reachRate = metrics.totalDownloaded > 0
+    ? ((metrics.totalInstalled / metrics.totalDownloaded) * 100).toFixed(1)
+    : '—';
 
   // ── Auto-select first deployment when data loads ──
   useEffect(() => {
@@ -411,6 +461,77 @@ function AppDetailCard({
                 </Button>
               )}
             </div>
+
+            {/* ── Metrics Cards ── */}
+            {activeDeployment && !releasesLoading && (
+              <div className="mb-6">
+                {metricsLoading ? (
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    {[1, 2, 3, 4].map((i) => (
+                      <Skeleton key={i} className="h-24 w-full rounded-lg" />
+                    ))}
+                  </div>
+                ) : rawMetrics ? (
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    {/* Reach Rate */}
+                    <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-dark-700 dark:bg-dark-800">
+                      <div className="flex items-center gap-2 text-xs font-medium text-gray-500 dark:text-gray-400">
+                        <TrendingUp className="h-4 w-4 text-primary-500" />
+                        Reach Rate
+                      </div>
+                      <div className="mt-1 text-2xl font-bold text-gray-900 dark:text-gray-100">
+                        {reachRate === '—' ? '—' : `${reachRate}%`}
+                      </div>
+                      <div className="mt-0.5 text-xs text-gray-400">
+                        {metrics.totalInstalled} / {metrics.totalDownloaded} installed
+                      </div>
+                    </div>
+
+                    {/* Total Downloads */}
+                    <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-dark-700 dark:bg-dark-800">
+                      <div className="flex items-center gap-2 text-xs font-medium text-gray-500 dark:text-gray-400">
+                        <Download className="h-4 w-4 text-blue-500" />
+                        Downloads
+                      </div>
+                      <div className="mt-1 text-2xl font-bold text-gray-900 dark:text-gray-100">
+                        {metrics.totalDownloaded.toLocaleString()}
+                      </div>
+                      <div className="mt-0.5 text-xs text-gray-400">
+                        Total downloads
+                      </div>
+                    </div>
+
+                    {/* Successful Installs */}
+                    <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-dark-700 dark:bg-dark-800">
+                      <div className="flex items-center gap-2 text-xs font-medium text-gray-500 dark:text-gray-400">
+                        <CheckCircle2 className="h-4 w-4 text-green-500" />
+                        Installed
+                      </div>
+                      <div className="mt-1 text-2xl font-bold text-gray-900 dark:text-gray-100">
+                        {metrics.totalInstalled.toLocaleString()}
+                      </div>
+                      <div className="mt-0.5 text-xs text-gray-400">
+                        {metrics.totalFailed > 0 ? `${metrics.totalFailed} failed` : 'No failures'}
+                      </div>
+                    </div>
+
+                    {/* Active Devices */}
+                    <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-dark-700 dark:bg-dark-800">
+                      <div className="flex items-center gap-2 text-xs font-medium text-gray-500 dark:text-gray-400">
+                        <SmartphoneIcon className="h-4 w-4 text-purple-500" />
+                        Active Devices
+                      </div>
+                      <div className="mt-1 text-2xl font-bold text-gray-900 dark:text-gray-100">
+                        {metrics.totalActive.toLocaleString()}
+                      </div>
+                      <div className="mt-0.5 text-xs text-gray-400">
+                        Currently active
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            )}
 
             {releasesLoading ? (
               <div className="space-y-4">
