@@ -102,7 +102,10 @@ services:
       - STORAGE_TYPE=local
       - STORAGE_DIR=/data/storage
       # ★ 公网下载地址 (Lucky nginx /codepush/ → host.docker.internal:3003)
-      - LOCAL_DOWNLOAD_URL=https://hyperpush.org/codepush/download
+      # CRITICAL: Must use cp.hyperpush.org (not hyperpush.org) because hyperpush.org
+      # goes through Cloudflare Pages which returns SPA HTML for all paths.
+      # cp.hyperpush.org routes to VPS → Lucky nginx → code-push-server :3003.
+      - LOCAL_DOWNLOAD_URL=https://cp.hyperpush.org/codepush/download
       - DATA_DIR=/data/tmp
       - TOKEN_SECRET=${TOKEN_SECRET}
       - PORT=3000
