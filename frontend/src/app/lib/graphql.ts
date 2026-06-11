@@ -327,6 +327,20 @@ export const TRIGGER_CODEPUSH_RELEASE = gql`
   }
 `;
 
+export const CLEAR_CODEPUSH_HISTORY = gql`
+  mutation clearCodepushDeploymentHistory(
+    $serverId: String!
+    $appName: String!
+    $deploymentName: String!
+  ) {
+    clearCodepushDeploymentHistory(
+      serverId: $serverId
+      appName: $appName
+      deploymentName: $deploymentName
+    )
+  }
+`;
+
 // ─── 2FA ────────────────────────────────────────────────
 
 export const VERIFY_2FA_MUTATION = gql`
