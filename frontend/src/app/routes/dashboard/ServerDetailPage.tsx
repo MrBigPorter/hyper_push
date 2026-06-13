@@ -447,7 +447,7 @@ export function ServerDetailPage() {
                   variables: {
                     input: {
                       serverId: params.id,
-                      friendlyName: 'cli-login-key',
+                      friendlyName: `cli-login-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`,
                       ttl: 3650,
                     },
                   },
@@ -540,7 +540,7 @@ export function ServerDetailPage() {
                         variables: {
                           input: {
                             serverId: params.id,
-                            friendlyName: 'cli-key',
+                            friendlyName: `key-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`,
                             ttl: 3650,
                           },
                         },

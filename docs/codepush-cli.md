@@ -101,6 +101,37 @@ code-push-standalone access-key remove <name>
 
 ---
 
+## Multi-Developer Collaboration
+
+When multiple developers work on the same app, each developer needs their own
+access key to release updates independently:
+
+1. **Each developer creates their own key:**
+   - Go to **Server Detail** → **CodePush Access Keys** → click **Create Key**
+   - A new uniquely-named key is generated instantly (e.g. `key-1718200000`)
+   - Copy the displayed key value — it won't be shown again
+
+2. **Each developer logs in with their key:**
+   ```bash
+   code-push-standalone login https://cp.hyperpush.org/codepush --accessKey <your-key>
+   ```
+
+3. **Developers can release updates independently:**
+   ```bash
+   code-push-standalone release-react MyApp ios --deploymentName Staging
+   ```
+
+4. **Revoke individual access:**
+   - Server Detail → CodePush Access Keys → Delete next to the developer's key
+   - That developer's CLI session will stop working immediately
+   - Other developers' keys remain unaffected
+
+> 💡 **Tip:** Each access key has a unique `friendlyName` (e.g. `key-1718200000`).
+> While the name auto-generated, you can identify which key belongs to whom
+> by asking team members which key name they received.
+
+---
+
 ## Troubleshooting
 
 ### "Invalid access key"
