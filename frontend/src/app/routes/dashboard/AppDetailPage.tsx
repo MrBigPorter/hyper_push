@@ -456,15 +456,18 @@ function AppDetailCard({
                               className="text-xs shrink-0"
                             >
                               {isActive ? 'Active' : 'Inactive'}
-                            </Badge>
-                            <span className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                              App v{appVersion}
-                            </span>
-                            {createdAt && (
-                              <span className="text-xs text-gray-400 dark:text-gray-500 hidden sm:inline shrink-0">
-                                {new Date(createdAt).toLocaleString()}
+                              </Badge>
+                              <span className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                App v{appVersion}
+                                {createdAt && (
+                                  <>
+                                    {' '}·{' '}
+                                    <span className="whitespace-nowrap">
+                                      {new Date(createdAt).toLocaleString()}
+                                    </span>
+                                  </>
+                                )}
                               </span>
-                            )}
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
                             <span className="text-xs text-gray-400">{formatBytes(size)}</span>

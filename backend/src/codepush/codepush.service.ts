@@ -321,22 +321,61 @@ export class CodepushService {
   /**
    * GET /apps/:appName/deployments/:deploymentName/history
    * Note: CodePush server uses /history, not /releases
+   *
+   * Also fetches the current deployment to determine which release is active
+   * (code-push-server's formatPackage() does NOT return an `active` field),
+   * then injects `active: true/false` into each history item.
    */
   async releaseHistory(
     serverId: string,
     appName: string,
     deploymentName: string,
   ): Promise<unknown> {
-    const result = await this.fetchWithAuth(
-      serverId,
-      'GET',
-      `/apps/${encodeURIComponent(appName)}/deployments/${encodeURIComponent(deploymentName)}/history`,
-    );
-    // CodePush server returns { history: [...] } — extract the array
-    if (result && typeof result === 'object' && 'history' in (result as Record<string, unknown>)) {
-      return (result as Record<string, unknown>).history;
+    // Fetch history and current deployment info in parallel
+    const [historyResult, deploymentResult] = await Promise.all([
+      this.fetchWithAuth(
+        serverId,
+        'GET',
+        `/apps/${encodeURIComponent(appName)}/deployments/${encodeURIComponent(deploymentName)}/history`,
+      ),
+      this.fetchWithAuth(
+        serverId,
+        'GET',
+        `/apps/${encodeURIComponent(appName)}/deployments/${encodeURIComponent(deploymentName)}`,
+      ),
+    ]);
+
+    // Extract history array from the response
+    let history: Record<string, unknown>[];
+    if (
+      historyResult &&
+      typeof historyResult === 'object' &&
+      'history' in (historyResult as Record<string, unknown>)
+    ) {
+      history = (historyResult as Record<string, unknown>).history as Record<string, unknown>[];
+    } else if (Array.isArray(historyResult)) {
+      history = historyResult as Record<string, unknown>[];
+    } else {
+      // Unexpected shape — return as-is
+      return historyResult;
     }
-    return result;
+
+    // Determine the active release label from the deployment response
+    // code-push-server's listDeloyment() returns { package: { label: "v11", ... } }
+    let activeLabel: string | null = null;
+    if (deploymentResult && typeof deploymentResult === 'object') {
+      const dep = deploymentResult as Record<string, unknown>;
+      const pkg = dep.package as Record<string, unknown> | undefined;
+      if (pkg && typeof pkg.label === 'string') {
+        activeLabel = pkg.label;
+      }
+    }
+
+    // Inject active field into each release
+    return history.map((release) => ({
+      ...release,
+      active: activeLabel !== null && release.label === activeLabel,
+    }));
   }
 
   /**
