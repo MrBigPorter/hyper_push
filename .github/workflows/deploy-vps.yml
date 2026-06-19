@@ -536,6 +536,8 @@ jobs:
             echo "========================================"
             echo " 6/7 — Restart containers with new images..."
             echo "========================================"
+            echo "➡️  Removing stale containers (safety net)..."
+            docker rm -f hyperpush-codepush-prod 2>/dev/null || true
             echo "➡️  Starting/Restarting HyperPush containers..."
             docker compose -f compose.yml -f deploy/compose.prod.yml up -d --force-recreate
 
