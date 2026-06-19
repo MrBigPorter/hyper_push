@@ -534,12 +534,9 @@ jobs:
               npx prisma db push 2>&1 || echo "⚠️ Schema sync may have already been applied"
 
             echo "========================================"
-            echo " 6/7 — Stop old containers & restart..."
+            echo " 6/7 — Restart containers with new images..."
             echo "========================================"
-            # Only stop HyperPush's own containers — don't touch other projects!
-            echo "➡️  Stopping HyperPush containers (if any)..."
-            docker compose -f compose.yml -f deploy/compose.prod.yml down 2>/dev/null || true
-            echo "➡️  Starting HyperPush containers..."
+            echo "➡️  Starting/Restarting HyperPush containers..."
             docker compose -f compose.yml -f deploy/compose.prod.yml up -d
 
             echo "========================================"
