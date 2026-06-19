@@ -331,18 +331,17 @@ export class CodepushService {
     appName: string,
     deploymentName: string,
   ): Promise<unknown> {
-    // Fetch history and current deployment info in parallel
-    const [historyResult, deploymentResult] = await Promise.all([
+    // Fetch history and all deployments (to get active package) in parallel.
+    // We use the list endpoint instead of the single deployment endpoint because
+    // code-push-server's listDeloyment() returns { package: { label: "v11", ... } }
+    // but GET /deployments/:name does NOT include the package field.
+    const [historyResult, deploymentsResult] = await Promise.all([
       this.fetchWithAuth(
         serverId,
         'GET',
         `/apps/${encodeURIComponent(appName)}/deployments/${encodeURIComponent(deploymentName)}/history`,
       ),
-      this.fetchWithAuth(
-        serverId,
-        'GET',
-        `/apps/${encodeURIComponent(appName)}/deployments/${encodeURIComponent(deploymentName)}`,
-      ),
+      this.fetchWithAuth(serverId, 'GET', `/apps/${encodeURIComponent(appName)}/deployments`),
     ]);
 
     // Extract history array from the response
@@ -360,12 +359,22 @@ export class CodepushService {
       return historyResult;
     }
 
-    // Determine the active release label from the deployment response
-    // code-push-server's listDeloyment() returns { package: { label: "v11", ... } }
+    // Extract the deployments array from the response
+    // code-push-server returns { deployments: [...] }
+    const deployments: Record<string, unknown>[] = Array.isArray(deploymentsResult)
+      ? (deploymentsResult as Record<string, unknown>[])
+      : deploymentsResult &&
+          typeof deploymentsResult === 'object' &&
+          'deployments' in (deploymentsResult as Record<string, unknown>)
+        ? ((deploymentsResult as Record<string, unknown>).deployments as Record<string, unknown>[])
+        : [];
+
+    // Find the matching deployment by name and extract its active package label
+    // code-push-server's listDeloyment() returns { name: "Staging", package: { label: "v11", ... } }
     let activeLabel: string | null = null;
-    if (deploymentResult && typeof deploymentResult === 'object') {
-      const dep = deploymentResult as Record<string, unknown>;
-      const pkg = dep.package as Record<string, unknown> | undefined;
+    const matchingDeployment = deployments.find((dep) => dep.name === deploymentName);
+    if (matchingDeployment) {
+      const pkg = matchingDeployment.package as Record<string, unknown> | undefined;
       if (pkg && typeof pkg.label === 'string') {
         activeLabel = pkg.label;
       }
