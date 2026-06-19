@@ -126,6 +126,9 @@ services:
         echo '>>> Patching upstream metrics NULL bug (init active/downloaded/failed/installed to 0)...' &&
         sed -i \"s/{package_id: packages.id}/{package_id: packages.id, active: 0, downloaded: 0, failed: 0, installed: 0}/\" /usr/local/lib/node_modules/code-push-server/core/services/package-manager.js &&
 
+        echo '>>> Patching upstream listDeloyment await bug (missing .then on Promise in GET /deployments/:name)...' &&
+        sed -i \"s|res.send({deployment: deployments.listDeloyment(deploymentInfo)});|return deployments.listDeloyment(deploymentInfo).then((data) => { res.send({deployment: data}); });|\" /usr/local/lib/node_modules/code-push-server/routes/apps.js &&
+
         echo '>>> Waiting for MySQL to be ready...' &&
         mysql_ready=false &&
         for i in \$$(seq 1 30); do
@@ -145,11 +148,7 @@ services:
         echo '>>> Initializing database schema...' &&
         code-push-server-db init --dbhost codepush-mysql --dbuser root --dbport 3306 --force &&
 
-        echo '>>> Generating TOKEN_SECRET if missing...' &&
-        if [ -z \"\$${TOKEN_SECRET}\" ] || [ \"\$${TOKEN_SECRET}\" = '<generate-with-openssl-rand-63-chars>' ]; then
-          export TOKEN_SECRET=\$$(node -e \"console.log(require('crypto').randomBytes(48).toString('base64').replace(/[^A-Za-z0-9]/g,'').slice(0,63))\")
-          echo '  Generated new TOKEN_SECRET.'
-        fi &&
+        echo '>>> Using stable TOKEN_SECRET from environment...' &&
 
         echo '>>> Starting code-push-server on port 3000...' &&
         code-push-server
@@ -168,8 +167,8 @@ services:
       - LOCAL_DOWNLOAD_URL=https://cp.hyperpush.org/codepush/download
       - DATA_DIR=/data/tmp
 
-      # ── JWT 签名密钥 (若未设置，启动时自动生成随机密钥) ──
-      - TOKEN_SECRET=${TOKEN_SECRET:-<generate-with-openssl-rand-63-chars>}
+      # ── JWT 签名密钥 (固定值，避免容器重启后所有 JWT 令牌失效) ──
+      - TOKEN_SECRET=HpcpServer2024TokenSecretKeyForJwtSigningDoNotChange
 
       # ── 服务器配置 ──
       - PORT=3000
