@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { HttpException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 /** Internal Docker network address for the codepush service */
@@ -97,7 +97,7 @@ export class CodepushService {
 
     if (!response.ok) {
       const msg = typeof data === 'string' ? data : JSON.stringify(data);
-      throw new Error(`CodePush API error (${response.status}): ${msg}`);
+      throw new HttpException(`CodePush API error: ${msg}`, response.status);
     }
 
     return data;

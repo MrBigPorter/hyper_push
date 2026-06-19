@@ -462,7 +462,7 @@ function AppDetailCard({
                             </span>
                             {createdAt && (
                               <span className="text-xs text-gray-400 dark:text-gray-500 hidden sm:inline shrink-0">
-                                {new Date(createdAt).toLocaleDateString()}
+                                {new Date(createdAt).toLocaleString()}
                               </span>
                             )}
                           </div>
@@ -470,14 +470,23 @@ function AppDetailCard({
                             <span className="text-xs text-gray-400">{formatBytes(size)}</span>
                             <button
                               type="button"
-                              title="Rollback"
+                              title={isActive ? 'Rollback to previous version' : 'Rollback to this version'}
                               onClick={async () => {
                                 try {
                                   await rollbackRelease({
-                                    variables: { serverId, appName, deploymentName: activeDeployment, label },
+                                    variables: {
+                                      serverId,
+                                      appName,
+                                      deploymentName: activeDeployment,
+                                      // Active release → rollback to previous (no label)
+                                      // Inactive release → rollback to this specific version
+                                      label: isActive ? undefined : label,
+                                    },
                                   });
                                 } catch (e) {
+                                  const msg = e instanceof Error ? e.message : 'Rollback failed';
                                   console.error('Rollback failed', e);
+                                  alert(`Rollback failed: ${msg}`);
                                 }
                               }}
                               className="rounded p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:text-gray-300 dark:hover:bg-dark-700"
@@ -553,16 +562,20 @@ function AppDetailCard({
                                     serverId,
                                     appName,
                                     deploymentName: activeDeployment,
-                                    label,
+                                    // Active release → rollback to previous (no label)
+                                    // Inactive release → rollback to this specific version
+                                    label: isActive ? undefined : label,
                                   },
                                 });
                               } catch (e) {
+                                const msg = e instanceof Error ? e.message : 'Rollback failed';
                                 console.error('Rollback failed', e);
+                                alert(`Rollback failed: ${msg}`);
                               }
                             }}
                           >
                             <Undo2 className="mr-1 h-3.5 w-3.5" />
-                            Rollback
+                            {isActive ? 'Rollback to Previous' : 'Rollback to This Version'}
                           </Button>
                           <Button
                             variant="ghost"
